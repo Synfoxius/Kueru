@@ -9,14 +9,19 @@ const serviceAccount = {
 
 export function getFirebaseAdmin() {
     if (admin.apps.length === 0) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            // Required for Admin SDK storage access
+        const config = {
             storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        })
+        };
+
+        if (process.env.FIREBASE_PRIVATE_KEY) {
+            config.credential = admin.credential.cert(serviceAccount);
+        }
+
+        admin.initializeApp(config);
     }
     return admin;
 }
+
 
 const firebaseAdmin = getFirebaseAdmin();
 

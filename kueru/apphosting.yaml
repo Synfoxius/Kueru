@@ -17,6 +17,23 @@ runConfig:
   #     - BUILD
   #     - RUNTIME
 
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyD1150x53KY-jTgvQgoCT3l1u0ESceMqWk"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "kueru-ba40e.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "kueru-ba40e"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "kueru-ba40e.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "69909419945"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:69909419945:web:157c1205c3a7a2625016b8"
+  - variable: NEXT_PUBLIC_MEASUREMENT_ID
+    value: "G-W136B2TWS3"
+
+
   # Grant access to secrets in Cloud Secret Manager.
   # You can create secrets with the CLI command `firebase apphosting:secrets:set <secretName>`.
   # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters

@@ -1,0 +1,185 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase/config";
+import { useAuth } from "@/context/AuthContext";
+
+import {
+    NavigationMenu,
+    NavigationMenuList,
+    NavigationMenuItem,
+    NavigationMenuTrigger,
+    NavigationMenuContent,
+    NavigationMenuLink,
+    navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin } from "@tabler/icons-react";
+
+/**
+ * Extracts up to two initials from a username string.
+ * e.g. "John Doe" -> "JD", "alice" -> "AL"
+ */
+function getInitials(username) {
+    if (!username) return "";
+    const parts = username.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return username.slice(0, 2).toUpperCase();
+}
+
+/** Recipe dropdown sub-links */
+const recipeLinks = [
+    { label: "Discover", href: "/recipes/discover" },
+    { label: "For You", href: "/recipes/recommendations" },
+    { label: "Search", href: "/recipes/find", icon: IconSearch },
+    { label: "New Recipe", href: "/recipes/new", icon: IconPlus },
+];
+
+export default function Navbar() {
+    const { user, userDoc } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const isRecipeActive = pathname.startsWith("/recipes");
+    const isAchievementsActive = pathname.startsWith("/achievements");
+    const isForumActive = pathname.startsWith("/forum");
+
+    const handleLogout = async () => {
+        await signOut(auth);
+        router.push("/login");
+    };
+
+    const profileImage = userDoc?.profileImage || null;
+    const username = userDoc?.username || "";
+
+    return (
+        <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                {/* Left section: Logo + Navigation */}
+                <div className="flex items-center gap-6">
+                    {/* Logo */}
+                    <Link href="/" className="flex shrink-0 items-center">
+                        <Image
+                            src="/logo.png"
+                            alt="Kueru logo"
+                            width={40}
+                            height={40}
+                            className="h-10 w-auto"
+                            priority
+                        />
+                    </Link>
+
+                    {/* Navigation tabs */}
+                    <NavigationMenu>
+                        <NavigationMenuList className="gap-1">
+                            {/* Recipe tab with dropdown */}
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${isRecipeActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 data-popup-open:bg-primary/80 data-popup-open:hover:bg-primary/90 data-open:bg-primary/80 data-open:hover:bg-primary/90 data-open:focus:bg-primary/90" : "hover:bg-muted focus:bg-muted"}`}>
+                                    <Link
+                                        href="/recipes/discover"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        Recipe
+                                    </Link>
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent className="min-w-[180px]">
+                                    <ul className="flex flex-col gap-0.5 p-1">
+                                        {recipeLinks.map((link) => (
+                                            <li key={link.href}>
+                                                <NavigationMenuLink asChild>
+                                                    <Link
+                                                        href={link.href}
+                                                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                                                    >
+                                                        {link.icon && <link.icon className="size-4" />}
+                                                        {link.label}
+                                                    </Link>
+                                                </NavigationMenuLink>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
+
+                            {/* Achievements & Challenges */}
+                            <NavigationMenuItem>
+                                <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} ${isAchievementsActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""}`}>
+                                    <Link href="/achievements">
+                                        Achievements & Challenges
+                                    </Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem>
+
+                            {/* Forum */}
+                            <NavigationMenuItem>
+                                <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} ${isForumActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""}`}>
+                                    <Link href="/forum">
+                                        Forum
+                                    </Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem>
+                        </NavigationMenuList>
+                    </NavigationMenu>
+                </div>
+
+                {/* Right section: Profile avatar */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className="rounded-full outline-none ring-offset-background transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            aria-label="Open user menu"
+                        >
+                            <Avatar size="lg" className="cursor-pointer bg-primary">
+                                {profileImage ? (
+                                    <AvatarImage src={profileImage} alt={username} />
+                                ) : null}
+                                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                                    {username ? getInitials(username) : <IconUser className="size-4" />}
+                                </AvatarFallback>
+                            </Avatar>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        {user ? (
+                            <>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/profile" className="cursor-pointer gap-2">
+                                        <IconUser className="size-4" />
+                                        Profile
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={handleLogout}
+                                    className="cursor-pointer gap-2 bg-accent text-accent-foreground font-semibold hover:bg-accent/90 focus:bg-accent/90"
+                                >
+                                    <IconLogout className="size-4" />
+                                    Logout
+                                </DropdownMenuItem>
+                            </>
+                        ) : (
+                            <DropdownMenuItem asChild>
+                                <Link href="/login" className="cursor-pointer gap-2 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 focus:bg-primary/90">
+                                    <IconLogin className="size-4" />
+                                    Login
+                                </Link>
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </nav>
+    );
+}
