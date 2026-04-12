@@ -12,26 +12,25 @@ const googleProvider = new GoogleAuthProvider();
 
 // Email & password login
 export const loginWithEmail = (email, password) => {
-    signInWithEmailAndPassword(auth, email, password);
+    return signInWithEmailAndPassword(auth, email, password);
 }
-    
 
 // Google login
 export const loginWithGoogle = () => {
-    signInWithPopup(auth, googleProvider);
+    return signInWithPopup(auth, googleProvider);
 }
 
 // Register new user
 export const registerWithEmail = (email, password) => {
-    createUserWithEmailAndPassword(auth, email, password);
+    return createUserWithEmailAndPassword(auth, email, password);
 }
 
 // Logout
 export const logout = () => {
-    signOut(auth);
+    return signOut(auth);
 }
 
 // Forgot password
 export const resetPassword = (email) => {
-    sendPasswordResetEmail(auth, email);
+    return sendPasswordResetEmail(auth, email);
 }
