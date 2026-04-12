@@ -42,6 +42,7 @@ export default function ForumPage() {
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("Most Popular");
     const [categories, setCategories] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]);
 
     useEffect(() => {
         getRecentPosts()
@@ -54,14 +55,24 @@ export default function ForumPage() {
     }, []);
 
     const displayedPosts = [...allPosts]
-        .filter(post =>
-            post.title.toLowerCase().includes(search.toLowerCase()) ||
-            post.content?.toLowerCase().includes(search.toLowerCase())
-        )
+        .filter(post => {
+            const query = search.toLowerCase();
+            const matchesSearch = post.title.toLowerCase().includes(query) ||
+                post.content?.toLowerCase().includes(query);
+            const matchesCategory = selectedCategories.length === 0 ||
+                selectedCategories.includes(post.postCategory);
+            return matchesSearch && matchesCategory;
+        })
         .sort((a, b) => {
-            if (sort === "Most Popular") return b.upvotesCount - a.upvotesCount;
-            if (sort === "Newest") return b.postedDateTime?.seconds - a.postedDateTime?.seconds;
-            if (sort === "Most Comments") return b.commentsCount - a.commentsCount;
+            if (sort === "Most Popular") {
+                return b.upvotesCount - a.upvotesCount;
+            }
+            if (sort === "Newest") {
+                return b.postedDateTime?.seconds - a.postedDateTime?.seconds;
+            }
+            if (sort === "Most Comments") {
+                return b.commentsCount - a.commentsCount;
+            }
             return 0;
         });
 
@@ -129,7 +140,19 @@ export default function ForumPage() {
                         </Button>
                     </Link>
                     <TrendingPanel topics={TRENDING} />
-                    <CategoriesPanel categories={categories} />
+                    <CategoriesPanel
+                        categories={categories}
+                        selectedCategories={selectedCategories}
+                        onToggle={(category) => {
+                            setSelectedCategories((prev) => {
+                                const isSelected = prev.includes(category);
+                                if (isSelected) {
+                                    return prev.filter((c) => c !== category);
+                                }
+                                return [...prev, category];
+                            });
+                        }}
+                    />
                 </aside>
 
             </div>

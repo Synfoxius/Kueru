@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, query, where, orderBy, limit, startAfter, serverTimestamp } from 'firebase/firestore';
 
 const FORUM_COLLECTION = 'forum_posts';
 
@@ -47,4 +47,16 @@ export const getRecentPosts = async (lastDoc = null, limitCount = 15) => {
     
     const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
+export const createPost = async (postData) => {
+    const postsRef = collection(db, FORUM_COLLECTION);
+    const docRef = await addDoc(postsRef, {
+        ...postData,
+        postedDateTime: serverTimestamp(),
+        editedDateTime: null,
+        upvotesCount: 0,
+        commentsCount: 0,
+    });
+    return docRef.id;
 };

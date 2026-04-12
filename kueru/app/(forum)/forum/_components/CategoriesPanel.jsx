@@ -7,21 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconSearch } from "@tabler/icons-react";
 
-export default function CategoriesPanel({ categories }) {
+export default function CategoriesPanel({ categories, selectedCategories, onToggle }) {
     const [search, setSearch] = useState("");
-    const [selected, setSelected] = useState([]);
 
     const filtered = categories.filter((c) =>
         c.toLowerCase().includes(search.toLowerCase())
     );
-
-    const toggle = (category) => {
-        setSelected((prev) =>
-            prev.includes(category)
-                ? prev.filter((c) => c !== category)
-                : [...prev, category]
-        );
-    };
 
     return (
         <Card className="bg-white">
@@ -41,8 +32,8 @@ export default function CategoriesPanel({ categories }) {
                         <div key={category} className="flex items-center gap-2">
                             <Checkbox
                                 id={category}
-                                checked={selected.includes(category)}
-                                onCheckedChange={() => toggle(category)}
+                                checked={selectedCategories.includes(category)}
+                                onCheckedChange={() => onToggle(category)}
                             />
                             <Label htmlFor={category} className="text-sm font-normal cursor-pointer">
                                 {category}
