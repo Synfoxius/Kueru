@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 const RECIPES_COLLECTION = 'recipes';
@@ -68,6 +68,52 @@ export const getCreatedRecipes = async (userId, lastDoc = null, limitCount = 10)
     const recipes = await Promise.all(recipePromises);
     
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
+/**
+ * Create a new user document in Firestore with default values.
+ * Called immediately after Firebase Auth registration.
+ * @param {string} uid - Firebase Auth UID
+ * @param {{ email: string, username: string }} data
+ */
+export const createUser = async (uid, { email, username }) => {
+    const userRef = doc(db, USERS_COLLECTION, uid);
+    await setDoc(userRef, {
+        userId: uid,
+        email,
+        username,
+        role: 'customer',
+        verified: false,
+        onboarding: {
+            dietaryPreferences: [],
+            foodAllergies: [],
+            cookingSkill: '',
+            recipeInterests: [],
+        },
+        onboardingComplete: false,
+        followingCount: 0,
+        followerCount: 0,
+        bio: '',
+        profileImage: '',
+        createdAt: serverTimestamp(),
+        createdRecipes: [],
+        savedRecipes: [],
+        achievementCompleted: {},
+        challengesJoined: {},
+    });
+};
+
+/**
+ * Save completed onboarding data and mark the user as fully registered.
+ * @param {string} uid
+ * @param {{ dietaryPreferences: string[], foodAllergies: string[], cookingSkill: string, recipeInterests: string[] }} onboardingData
+ */
+export const completeOnboarding = async (uid, onboardingData) => {
+    const userRef = doc(db, USERS_COLLECTION, uid);
+    await updateDoc(userRef, {
+        onboarding: onboardingData,
+        onboardingComplete: true,
+    });
 };
 
 export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) => {

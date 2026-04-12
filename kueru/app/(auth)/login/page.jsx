@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { loginWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
+import { getUser } from "@/lib/db/userService";
 import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export default function LoginPage() {
         setLoading(true);
         try {
             await loginWithEmail(email, password);
-            router.push("/feed");
+            router.push("/profile");
         } catch (err) {
             setError("Invalid email or password. Please try again.");
         } finally {
@@ -40,31 +41,44 @@ export default function LoginPage() {
     const handleGoogle = async () => {
         setError("");
         try {
-            await loginWithGoogle();
-            router.push("/feed");
+            const { user } = await loginWithGoogle();
+            const existingDoc = await getUser(user.uid);
+            if (!existingDoc) {
+                router.push("/onboarding?google=1");
+            } else if (existingDoc.onboardingComplete) {
+                router.push("/profile");
+            } else {
+                router.push("/onboarding");
+            }
         } catch (err) {
             setError("Google sign-in failed. Please try again.");
         }
     };
 
     return (
-        <div className="flex h-screen">
+        <div className="flex min-h-screen flex-col md:flex-row">
 
-            {/* LEFT PANEL — branding */}
-            <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-primary text-primary-foreground">
+            {/* BRANDING PANEL — compact strip on mobile, full side panel on desktop */}
+            <div className="relative flex md:flex-1 flex-col items-center justify-center overflow-hidden bg-primary text-primary-foreground py-8 md:py-0">
                 {/* Decorative circle — top right */}
                 <div className="absolute -top-16 -right-16 size-56 rounded-full bg-white/15" />
 
-                <div className="relative z-10 flex flex-col items-center gap-1">
-                    <Image src="/logo.png" alt="Kueru logo" width={144} height={144} />
-                    <p className="mt-2 text-2xl font-bold tracking-widest">食える</p>
-                    <p className="text-lg font-semibold">kueru</p>
-                    <p className="mt-8 text-sm opacity-85">Share your culinary adventures</p>
+                {/* Mobile: horizontal layout — Desktop: vertical layout */}
+                <div className="relative z-10 flex flex-row items-center gap-5 md:flex-col md:gap-2">
+                    {/* Wrapper div controls the rendered size; object-contain prevents squashing */}
+                    <div className="relative w-20 h-20 md:w-40 md:h-40 shrink-0">
+                        <Image src="/logo.png" alt="Kueru logo" fill className="object-contain" />
+                    </div>
+                    <div className="flex flex-col md:items-center">
+                        <p className="text-2xl font-bold tracking-widest md:mt-2 md:text-3xl">食える</p>
+                        <p className="text-lg font-semibold md:text-xl">kueru</p>
+                        <p className="hidden md:block mt-8 text-sm opacity-85">Share your culinary adventures</p>
+                    </div>
                 </div>
             </div>
 
-            {/* RIGHT PANEL — login form */}
-            <div className="flex flex-1 items-center justify-center bg-background px-10" >
+            {/* FORM PANEL */}
+            <div className="flex flex-1 items-center justify-center bg-background px-6 py-10 md:px-10">
                 <div className="w-full max-w-md">
                         <h1 className="mb-2 text-3xl font-extrabold text-foreground">Welcome Back</h1>
                         <p className="mb-9 text-sm text-muted-foreground">
