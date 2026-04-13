@@ -74,9 +74,9 @@ export const getCreatedRecipes = async (userId, lastDoc = null, limitCount = 10)
  * Create a new user document in Firestore with default values.
  * Called immediately after Firebase Auth registration.
  * @param {string} uid - Firebase Auth UID
- * @param {{ email: string, username: string }} data
+ * @param {{ email: string, username: string, profileImage?: string }} data
  */
-export const createUser = async (uid, { email, username }) => {
+export const createUser = async (uid, { email, username, profileImage = '' }) => {
     const userRef = doc(db, USERS_COLLECTION, uid);
     await setDoc(userRef, {
         userId: uid,
@@ -94,7 +94,7 @@ export const createUser = async (uid, { email, username }) => {
         followingCount: 0,
         followerCount: 0,
         bio: '',
-        profileImage: '',
+        profileImage,
         createdAt: serverTimestamp(),
         createdRecipes: [],
         savedRecipes: [],
