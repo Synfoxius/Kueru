@@ -6,16 +6,14 @@ import { getRecipesByUser } from "@/lib/db/recipeService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-// Placeholder username — replace with auth context when user is implemented
-const PLACEHOLDER_USERNAME = "placeholder_user";
-
-export default function RecipeSelector({ selectedRecipeId, onSelect }) {
+export default function RecipeSelector({ username, selectedRecipeId, onSelect }) {
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId) ?? null;
 
     useEffect(() => {
-        getRecipesByUser(PLACEHOLDER_USERNAME)
+        if (!username) return;
+        getRecipesByUser(username)
             .then(({ recipes }) => setRecipes(recipes))
             .finally(() => setLoading(false));
     }, []);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { IconSearch, IconPlus } from "@tabler/icons-react";
+import Navbar from "@/components/Navbar";
 
 import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
@@ -23,13 +24,6 @@ const RECIPE_OF_THE_DAY = {
     tags: ["Healthy", "Vegan", "Mediterranean"],
 };
 
-const TRENDING = [
-    "Vegan Recipes",
-    "Italian Cuisine",
-    "Quick Meals",
-    "Baking Tips",
-    "Meal Prep",
-];
 
 const SORT_OPTIONS = ["Most Popular", "Newest", "Most Comments"];
 
@@ -39,20 +33,46 @@ export default function ForumPage() {
     const [allPosts, setAllPosts] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastDoc, setLastDoc] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState("Most Popular");
     const [categories, setCategories] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
 
+    const LIMIT = 15;
+
     useEffect(() => {
         getRecentPosts()
-            .then(({ posts }) => {
+            .then(({ posts, lastDoc }) => {
                 setAllPosts(posts);
+                setLastDoc(lastDoc);
+                setHasMore(posts.length === LIMIT);
                 setCategories([...new Set(posts.map(post => post.postCategory).filter(Boolean))]);
             })
             .catch(() => setError("Failed to load forum posts. Please try again later."))
             .finally(() => setLoading(false));
     }, []);
+
+    const handleLoadMore = async () => {
+        if (!lastDoc || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const { posts, lastDoc: newLastDoc } = await getRecentPosts(lastDoc);
+            setAllPosts((prev) => [...prev, ...posts]);
+            setLastDoc(newLastDoc);
+            setHasMore(posts.length === LIMIT);
+            setCategories((prev) => [...new Set([...prev, ...posts.map(p => p.postCategory).filter(Boolean)])]);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const trendingPosts = 
+        [...allPosts]
+        .sort((a, b) => (b.upvotesCount ?? 0) - (a.upvotesCount ?? 0))
+        .slice(0, 5);
 
     const displayedPosts = [...allPosts]
         .filter(post => {
@@ -79,9 +99,8 @@ export default function ForumPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            {/* ── Topbar placeholder ── */}
             <div className="h-14 w-full border-b bg-card flex items-center px-6 text-sm text-muted-foreground">
-                Topbar — coming soon
+                <Navbar />
             </div>
 
             {/* ── Main layout ── */}
@@ -117,6 +136,23 @@ export default function ForumPage() {
                     <Separator />
 
                     {/* Post feed */}
+
+                    {displayedPosts.length === 0 && !loading && !error && (
+                        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+                            <div className="flex items-center justify-center size-16 rounded-full bg-muted">
+                                <IconSearch className="size-7 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">No posts found</h2>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    {search || categories.length > 0
+                                        ? "Try adjusting your search or filters"
+                                        : "Be the first to start a discussion"}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {error && (
                         <p className="text-sm text-destructive">{error}</p>
                     )}
@@ -127,6 +163,16 @@ export default function ForumPage() {
                             {displayedPosts.map((post) => (
                                 <PostCard key={post.id} post={post} />
                             ))}
+                            {hasMore && !search && selectedCategories.length === 0 && (
+                                <Button
+                                    variant="outline"
+                                    className="w-full bg-white"
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore}
+                                >
+                                    {loadingMore ? "Loading..." : "Load more"}
+                                </Button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -139,7 +185,7 @@ export default function ForumPage() {
                             Create new Post
                         </Button>
                     </Link>
-                    <TrendingPanel topics={TRENDING} />
+                    <TrendingPanel posts={trendingPosts} />
                     <CategoriesPanel
                         categories={categories}
                         selectedCategories={selectedCategories}

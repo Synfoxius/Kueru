@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { IconArrowLeft, IconSend, IconPencil, IconPhoto, IconTag, IconBook2 } from "@tabler/icons-react";
+import { IconSend, IconPencil, IconPhoto, IconTag, IconBook2 } from "@tabler/icons-react";
 import RecipeSelector from "./_components/RecipeSelector";
 import ImageUploader from "./_components/ImageUploader";
 import SectionCard from "./_components/SectionCard";
+import BackToForumButton from "../_components/BackToForumButton";
 import { createPost } from "@/lib/db/forumService";
+import Navbar from "@/components/Navbar";
 
 const CATEGORIES = [
     "Baking Tips", "Rant", "Question", "Discussion", "Recommendation", "Review", "Showoff",
@@ -21,6 +23,7 @@ const MAX_TITLE_LENGTH = 300;
 
 export default function CreatePostPage() {
     const router = useRouter();
+    const { user, userDoc, loading } = useAuth();
 
     const [title, setTitle] = useState("");
     const [bodyText, setBodyText] = useState("");
@@ -28,6 +31,15 @@ export default function CreatePostPage() {
     const [category, setCategory] = useState(null);
     const [selectedRecipeId, setSelectedRecipeId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
+    if (loading) {
+        return null;
+    }
+    //If user is not logged in, redirect to login page.
+    if (!user) { 
+        router.push("/login"); 
+        return null; 
+    }
 
     const postType = selectedRecipeId ? "Recipe" : "Discussion";
     const filledURLs = mediaURLs.filter(Boolean);
@@ -45,7 +57,7 @@ export default function CreatePostPage() {
         setSubmitting(true);
         try {
             await createPost({
-                userId: "CHLru6v3zCMKlpCcqzEZvAI9sq62", // replace with real auth UID
+                userId: user.uid,
                 title,
                 contentType,
                 content: bodyText,
@@ -63,19 +75,18 @@ export default function CreatePostPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            {/* Topbar placeholder */}
             <div className="h-14 w-full border-b bg-white flex items-center px-6 text-sm text-muted-foreground">
-                Topbar — coming soon
+                <Navbar />
+            </div>
+
+            {/* Back button */}
+            <div className="mx-auto max-w-3xl px-4 pt-4">
+                <BackToForumButton />
             </div>
 
             {/* Page header */}
             <div className="w-full">
-                <div className="mx-auto max-w-3xl px-4 py-5 flex items-center gap-4">
-                    <Link href="/forum">
-                        <Button variant="ghost" size="icon" className="rounded-full shrink-0 hover:bg-primary/10 hover:text-primary">
-                            <IconArrowLeft className="size-5" />
-                        </Button>
-                    </Link>
+                <div className="mx-auto max-w-3xl px-4 py-4 flex items-center gap-4">
                     <div className="flex-1">
                         <h1 className="text-xl font-bold leading-tight">Create a Post</h1>
                         <p className="text-xs text-muted-foreground mt-0.5">Share your recipe, ask a question, or start a discussion</p>
@@ -90,8 +101,6 @@ export default function CreatePostPage() {
                     </span>
                 </div>
             </div>
-
-            <Separator />
 
             {/* Form */}
             <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-5">
@@ -144,7 +153,7 @@ export default function CreatePostPage() {
                     subtitle="Drag & drop or click to upload photos"
                 >
                     <ImageUploader
-                        userId="placeholder_user"
+                        userId={user.uid}
                         imageURLs={mediaURLs}
                         onChange={setMediaURLs}
                     />
@@ -182,6 +191,7 @@ export default function CreatePostPage() {
                     subtitle="Attach one of your recipes"
                 >
                     <RecipeSelector
+                        username={userDoc?.username}
                         selectedRecipeId={selectedRecipeId}
                         onSelect={setSelectedRecipeId}
                     />
