@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
+import Navbar from "@/components/Navbar";
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-background font-sans">
-      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-background px-16 py-32 sm:items-start">
+    <div className="flex flex-1 flex-col bg-background font-sans">
+      <Navbar />
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-background px-16 py-32 sm:items-start">
         <Image
           src="/next.svg"
           alt="Next.js logo"

@@ -128,7 +128,11 @@ function OnboardingPage() {
         try {
             const existing = await getUserByUsername(username);
             if (existing) { setUsernameError("This username is already taken."); return; }
-            await createUser(user.uid, { email: user.email, username });
+            await createUser(user.uid, {
+                email: user.email,
+                username,
+                profileImage: user.photoURL || '',
+            });
             setStep(1);
         } catch {
             setError("Something went wrong. Please try again.");
