@@ -4,16 +4,19 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
+import { getPost } from "@/lib/db/forumService";
 import { getComment, getRepliesByComment, createComment } from "@/lib/db/commentService";
 import { Button } from "@/components/ui/button";
 import { IconMessageCircle, IconSend, IconArrowUpRight } from "@tabler/icons-react";
 import CommentCard from "../../_components/CommentCard";
+import PostDetailCard from "../../_components/PostDetailCard";
 import BackToForumButton from "../../../_components/BackToForumButton";
 
 export default function SingleCommentPage({ params }) {
     const { id: postId, commentId } = use(params);
     const { user } = useAuth();
 
+    const [post, setPost] = useState(null);
     const [rootComment, setRootComment] = useState(null);
     const [replies, setReplies] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,24 +30,27 @@ export default function SingleCommentPage({ params }) {
         setReplies(fetched);
     };
 
+    //retrieve post and comment
     useEffect(() => {
         const init = async () => {
             try {
-                const comment = await getComment(commentId);
-                if (!comment) {
-                    setError("Comment not found.");
-                    return;
-                }
-                setRootComment(comment);
+                const [fetchedPost, fetchedComment] = await Promise.all([
+                    getPost(postId),
+                    getComment(commentId),
+                ]);
+                if (!fetchedPost) { setError("Post not found."); return; }
+                if (!fetchedComment) { setError("Comment not found."); return; }
+                setPost(fetchedPost);
+                setRootComment(fetchedComment);
                 await loadReplies();
             } catch {
-                setError("Failed to load comment. Please try again later.");
+                setError("Failed to load. Please try again later.");
             } finally {
                 setLoading(false);
             }
         };
         init();
-    }, [commentId]);
+    }, [postId, commentId]);
 
     const handleReplySubmit = async () => {
         if (!commentText.trim() || !user) { return; }
@@ -74,9 +80,12 @@ export default function SingleCommentPage({ params }) {
                 <Navbar />
             </div>
 
-            <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-5">
+            <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-5 mb-10">
 
                 <BackToForumButton />
+
+                {/* Post card */}
+                <PostDetailCard post={post} />
 
                 {/* Context banner */}
                 <Link
@@ -89,7 +98,7 @@ export default function SingleCommentPage({ params }) {
 
                 {/* Root comment */}
                 <div className="rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
-                    <div className="px-6 py-2 border-b border-border flex items-center gap-2">
+                    <div className="px-6 py-3 border-b border-border flex items-center gap-2">
                         <IconMessageCircle className="size-4 text-primary" />
                         <h2 className="text-sm font-semibold text-muted-foreground">Single comment thread</h2>
                     </div>

@@ -4,7 +4,7 @@ import { IconTrendingUp, IconArrowUp } from "@tabler/icons-react";
 
 export default function TrendingPanel({ posts }) {
     return (
-        <Card className="bg-white">
+        <Card className="bg-white"> 
             <CardContent className="p-4">
 
                 {/* Header */}
@@ -12,6 +12,10 @@ export default function TrendingPanel({ posts }) {
                     <IconTrendingUp className="size-4 text-primary" />
                     <h3 className="font-semibold text-sm">Trending</h3>
                 </div>
+
+                {posts.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No trending posts at the moment.</p>
+                )}
 
                 {/* Post list */}
                 <ol className="space-y-3">
