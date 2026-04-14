@@ -32,6 +32,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (authLoading) return;
+        if (!currentUser) { router.replace("/login"); return; }
 
         const fetchProfile = async () => {
             setPageLoading(true);
