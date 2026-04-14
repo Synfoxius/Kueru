@@ -58,7 +58,7 @@ export default function Navbar() {
 
     const handleLogout = async () => {
         await signOut(auth);
-        router.push("/login");
+        router.push("/");
     };
 
     const profileImage = userDoc?.profileImage || null;
