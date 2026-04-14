@@ -24,7 +24,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin } from "@tabler/icons-react";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings } from "@tabler/icons-react";
 
 /**
  * Extracts up to two initials from a username string.
@@ -151,22 +151,28 @@ export default function Navbar() {
                             </Avatar>
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuContent align="end" className="w-52">
                         {user ? (
                             <>
                                 <DropdownMenuItem asChild>
                                     <Link href="/profile" className="cursor-pointer gap-2">
                                         <IconUser className="size-4" />
-                                        Profile
+                                        My Profile
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/settings" className="cursor-pointer gap-2">
+                                        <IconSettings className="size-4" />
+                                        Settings &amp; Activities
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onClick={handleLogout}
-                                    className="cursor-pointer gap-2 bg-accent text-accent-foreground font-semibold hover:bg-accent/90 focus:bg-accent/90"
+                                    className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                                 >
                                     <IconLogout className="size-4" />
-                                    Logout
+                                    Log Out
                                 </DropdownMenuItem>
                             </>
                         ) : (

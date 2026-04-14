@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { IconUserPlus, IconUserCheck, IconEdit, IconLogout } from "@tabler/icons-react";
+import { IconUserPlus, IconUserCheck, IconEdit } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
-import { logout } from "@/lib/firebase/auth";
 import { getUserByUsername } from "@/lib/db/userService";
 import { getRecipesByUser } from "@/lib/db/recipeService";
 import { checkIfFollowing, followUser, unfollowUser } from "@/lib/db/followService";
@@ -17,34 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import UserPosts from "@/app/profile/_components/UserPosts";
-
-function getInitials(username) {
-    if (!username) return "";
-    const parts = username.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return username.slice(0, 2).toUpperCase();
-}
-
-function ForumPostCard({ post }) {
-    const date = post.postedDateTime?.toDate?.()?.toLocaleDateString() ?? "";
-    return (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-1 hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="flex items-start justify-between gap-2">
-                <p className="font-semibold text-sm line-clamp-2">{post.title}</p>
-                {post.postCategory && (
-                    <span className="shrink-0 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
-                        {post.postCategory}
-                    </span>
-                )}
-            </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {date && <span>{date}</span>}
-                <span>▲ {post.upvotesCount ?? 0}</span>
-                <span>💬 {post.commentsCount ?? 0}</span>
-            </div>
-        </div>
-    );
-}
+import { getInitials } from "@/app/profile/_components/getInitials";
 
 export default function ProfilePage() {
     const { username } = useParams();
@@ -127,79 +99,86 @@ export default function ProfilePage() {
     return (
         <>
             <Navbar />
-            <main className="mx-auto max-w-3xl px-4 py-8">
+                <main className="mx-auto max-w-6xl px-4 py-8">
 
                 {/* Profile header */}
-                <div className="flex items-start gap-6">
-                    <Avatar className="size-28 shrink-0 text-3xl font-bold bg-primary text-primary-foreground">
+                <div className="flex items-center gap-8">
+                    <Avatar className="size-32 shrink-0 text-4xl font-bold">
                         {profileUser.profileImage
                             ? <AvatarImage src={profileUser.profileImage} alt={profileUser.username} />
                             : null}
-                        <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-bold">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-4xl font-bold">
                             {getInitials(profileUser.username)}
                         </AvatarFallback>
                     </Avatar>
 
-                    <div className="flex-1 min-w-0">
-                        {/* Username + action button */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0 space-y-3">
+                        {/* Username + action buttons */}
+                        <div className="flex flex-wrap items-center gap-3">
                             <h1 className="text-2xl font-bold">@{profileUser.username}</h1>
-                            {isOwnProfile ? (
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" className="gap-1.5">
-                                        <IconEdit className="size-4" /> Edit Profile
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="gap-1.5 text-muted-foreground hover:text-destructive"
-                                        onClick={() => logout().then(() => router.push("/login"))}
-                                    >
-                                        <IconLogout className="size-4" /> Logout
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    variant={isFollowing ? "outline" : "default"}
-                                    onClick={handleFollowToggle}
-                                    disabled={followLoading}
-                                    className="gap-1.5"
-                                >
-                                    {isFollowing
-                                        ? <><IconUserCheck className="size-4" /> Unfollow</>
-                                        : <><IconUserPlus className="size-4" /> Follow</>
-                                    }
-                                </Button>
-                            )}
+                            
                         </div>
 
                         {/* Stats */}
-                        <div className="mt-3 flex gap-6 text-sm">
-                            <span><strong>{recipes.length}</strong> <span className="text-muted-foreground">recipes</span></span>
-                            <span><strong>{profileUser.followerCount ?? 0}</strong> <span className="text-muted-foreground">followers</span></span>
-                            <span><strong>{profileUser.followingCount ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
+                        <div className="flex gap-8 text-sm">
+                            <span><strong className="text-base">{recipes.length}</strong> <span className="text-muted-foreground">recipes</span></span>
+                            <span><strong className="text-base">{profileUser.followerCount ?? 0}</strong> <span className="text-muted-foreground">followers</span></span>
+                            <span><strong className="text-base">{profileUser.followingCount ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
                         </div>
 
-                        {/* Bio */}
-                        {profileUser.bio && (
-                            <p className="mt-3 text-sm text-muted-foreground">{profileUser.bio}</p>
+                        {/* Display name + Bio */}
+                        {profileUser.displayName && (
+                            <p className="text-sm font-medium">{profileUser.displayName}</p>
                         )}
+                        {profileUser.bio && (
+                            <p className="text-sm text-muted-foreground">{profileUser.bio}</p>
+                        )}
+
+                        
                     </div>
                 </div>
 
-                <Separator className="my-6" />
+                <div className="flex justify-center py-4">
+                    {isOwnProfile ? (
+                        <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => router.push("/profile/edit")}>
+                            <IconEdit className="size-4" /> Edit Profile
+                        </Button>
+                    ) : (
+                        <Button
+                            size="sm"
+                            variant={isFollowing ? "outline" : "default"}
+                            onClick={handleFollowToggle}
+                            disabled={followLoading}
+                            className="gap-1.5 w-full"
+                        >
+                            {isFollowing
+                                ? <><IconUserCheck className="size-4" /> Unfollow</>
+                                : <><IconUserPlus className="size-4" /> Follow</>
+                            }
+                        </Button>
+                    )}
+                </div>
 
                 {/* Tabs */}
                 <Tabs defaultValue="recipes">
-                    <TabsList className="mb-6">
-                        <TabsTrigger value="recipes">Recipes</TabsTrigger>
-                        <TabsTrigger value="forums">Forums</TabsTrigger>
+                    <TabsList variant="line" className="w-full flex gap-0 border-b border-border rounded-none h-auto p-0 mb-6">
+                        <TabsTrigger
+                            value="recipes"
+                            className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
+                        >
+                            My Recipes
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="forums"
+                            className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
+                        >
+                            My Forums
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="recipes">
                         {recipes.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                                 {recipes.map(r => <RecipeCard key={r.id} recipe={r} />)}
                             </div>
                         ) : (
