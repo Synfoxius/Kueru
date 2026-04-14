@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUser } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
-import { IconArrowUp, IconArrowDown, IconMessageCircle } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconMessageCircle, IconChefHat, IconPlayerPlay } from "@tabler/icons-react";
+import ImageGallery from "./ImageGallery";
 
 function timeAgo(timestamp) {
     if (!timestamp) { return ""; }
@@ -57,18 +57,6 @@ export default function PostDetailCard({ post }) {
     return (
         <div className="rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
 
-            {/* Post image */}
-            {post.imageURLs?.[0] && (
-                <div className="relative w-full h-64 border-b border-border">
-                    <Image
-                        src={post.imageURLs[0]}
-                        alt={post.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 768px"
-                        className="object-cover"
-                    />
-                </div>
-            )}
 
             {/* Post body */}
             <div className="p-6 flex gap-4">
@@ -132,21 +120,36 @@ export default function PostDetailCard({ post }) {
                         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
                     )}
 
-                    {/* Additional images */}
-                    {post.imageURLs?.length > 1 && (
-                        <div className="grid grid-cols-3 gap-2 mt-1">
-                            {post.imageURLs.slice(1).map((url, i) => (
-                                <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                                    <Image
-                                        src={url}
-                                        alt={`Image ${i + 2}`}
-                                        fill
-                                        sizes="200px"
-                                        className="object-cover"
-                                    />
-                                </div>
-                            ))}
+                    {/* Recipe link */}
+                    {post.postType === "Recipe" && post.recipeId && (
+                        <Link
+                            href={`/recipe/${post.recipeId}`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-sm text-primary font-medium hover:bg-primary/10 transition-colors w-fit"
+                        >
+                            <IconChefHat className="size-4 shrink-0" />
+                            View Recipe
+                        </Link>
+                    )}
+
+                    {/* Video embed */}
+                    {post.videoEmbed && (
+                        <div className="rounded-xl overflow-hidden border border-border aspect-video">
+                            <iframe
+                                src={
+                                    post.videoEmbed.platform === "youtube"
+                                        ? `https://www.youtube.com/embed/${post.videoEmbed.id}`
+                                        : `https://player.vimeo.com/video/${post.videoEmbed.id}`
+                                }
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
                         </div>
+                    )}
+
+                    {/* Image gallery */}
+                    {post.imageURLs?.length > 0 && (
+                        <ImageGallery images={post.imageURLs} title={post.title} />
                     )}
 
                 </div>

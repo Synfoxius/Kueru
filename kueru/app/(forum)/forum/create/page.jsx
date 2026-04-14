@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { IconSend, IconPencil, IconPhoto, IconTag, IconBook2 } from "@tabler/icons-react";
+import { IconSend, IconPencil, IconPhotoVideo, IconTag, IconBook2 } from "@tabler/icons-react";
 import RecipeSelector from "./_components/RecipeSelector";
 import ImageUploader from "./_components/ImageUploader";
 import SectionCard from "./_components/SectionCard";
@@ -28,9 +28,11 @@ export default function CreatePostPage() {
     const [title, setTitle] = useState("");
     const [bodyText, setBodyText] = useState("");
     const [mediaURLs, setMediaURLs] = useState([]);
+    const [videoEmbed, setVideoEmbed] = useState(null);
     const [category, setCategory] = useState(null);
     const [selectedRecipeId, setSelectedRecipeId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [userRecipes, setUserRecipes] = useState([]);
 
     if (loading) {
         return null;
@@ -62,6 +64,7 @@ export default function CreatePostPage() {
                 contentType,
                 content: bodyText,
                 imageURLs: filledURLs,
+                videoEmbed: videoEmbed ?? null,
                 postCategory: category,
                 postType,
                 recipeId: postType === "Recipe" ? selectedRecipeId : null,
@@ -103,7 +106,7 @@ export default function CreatePostPage() {
             </div>
 
             {/* Form */}
-            <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-5">
+            <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-5 mb-10">
 
                 {/* Content card */}
                 <SectionCard
@@ -146,16 +149,18 @@ export default function CreatePostPage() {
                     </div>
                 </SectionCard>
 
-                {/* Images card */}
+                {/* Media card */}
                 <SectionCard
-                    icon={IconPhoto}
-                    title="Images (optional)"
-                    subtitle="Drag & drop or click to upload photos"
+                    icon={IconPhotoVideo}
+                    title="Media (optional)"
+                    subtitle="Upload up to 4 photos and/or attach a YouTube video"
                 >
                     <ImageUploader
                         userId={user.uid}
                         imageURLs={mediaURLs}
                         onChange={setMediaURLs}
+                        videoEmbed={videoEmbed}
+                        onVideoChange={setVideoEmbed}
                     />
                 </SectionCard>
 

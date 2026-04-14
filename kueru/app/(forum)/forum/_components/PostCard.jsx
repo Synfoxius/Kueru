@@ -9,7 +9,7 @@ import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService"
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay } from "@tabler/icons-react";
 
 function timeAgo(timestamp) {
     if (!timestamp) return "";
@@ -113,6 +113,26 @@ export default function PostCard({ post }) {
                                 </span>
                             ))}
                         </div>
+                    )}
+
+                    {/* Video badge */}
+                    {post.videoEmbed && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted text-xs text-muted-foreground font-medium w-fit">
+                            <IconPlayerPlay className="size-3.5 shrink-0" />
+                            {post.videoEmbed.platform === "youtube" ? "YouTube" : "Vimeo"} video
+                        </span>
+                    )}
+
+                    {/* Recipe link */}
+                    {post.postType === "Recipe" && post.recipeId && (
+                        <Link
+                            href={`/recipe/${post.recipeId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/30 bg-primary/5 text-xs text-primary font-medium hover:bg-primary/10 transition-colors w-fit"
+                        >
+                            <IconChefHat className="size-3.5 shrink-0" />
+                            View Recipe
+                        </Link>
                     )}
 
                     {/* Meta */}

@@ -34,6 +34,16 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
+export const getTopRecipes = async (n = 20) => {
+    const q = query(
+        collection(db, RECIPES_COLLECTION),
+        orderBy('upvotes', 'desc'),
+        limit(n)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
 export const getRecipesByUser = async (username, lastDoc = null, limitCount = 10) => {
     const recipesRef = collection(db, RECIPES_COLLECTION);
     

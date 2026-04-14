@@ -13,9 +13,9 @@ import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
 import TrendingPanel from "./_components/TrendingPanel";
 import CategoriesPanel from "./_components/CategoriesPanel";
+import DevSeedButton from "./_components/DevSeedButton";
 
 // ── Placeholder data (replace with Firestore fetches later) ──────────────────
-
 const RECIPE_OF_THE_DAY = {
     name: "Mediterranean Quinoa Bowl",
     description: "A vibrant nutrition bowl packed with roasted vegetables, crispy chickpeas, and a creamy tahini dressing.",
@@ -104,12 +104,12 @@ export default function ForumPage() {
             </div>
 
             {/* ── Main layout ── */}
-            <div className="mx-auto max-w-6xl px-4 py-6 flex gap-6">
+            <div className="mx-auto max-w-6xl px-4 py-6 flex gap-6 mb-10">
 
                 {/* ── Left: main content ── */}
                 <div className="flex flex-1 flex-col gap-4 min-w-0">
 
-                    <RecipeOfTheDay recipe={RECIPE_OF_THE_DAY} />
+                    <RecipeOfTheDay />
 
                     {/* Search + sort bar */}
                     <div className="flex items-center gap-3">
@@ -179,12 +179,16 @@ export default function ForumPage() {
 
                 {/* ── Right: sidebar ── */}
                 <aside className="w-64 shrink-0 flex flex-col gap-4">
+
+                    
+                    
                     <Link href="/forum/create">
                         <Button className="w-full gap-2">
                             <IconPlus className="size-4" />
                             Create new Post
                         </Button>
                     </Link>
+                    <DevSeedButton />
                     <TrendingPanel posts={trendingPosts} />
                     <CategoriesPanel
                         categories={categories}
