@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { IconUserPlus, IconUserCheck, IconEdit } from "@tabler/icons-react";
+import { IconUserPlus, IconUserCheck, IconEdit, IconLogout } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
+import { logout } from "@/lib/firebase/auth";
 import { getUserByUsername } from "@/lib/db/userService";
 import { getRecipesByUser } from "@/lib/db/recipeService";
-import { getPostsByUser } from "@/lib/db/forumService";
 import { checkIfFollowing, followUser, unfollowUser } from "@/lib/db/followService";
 
 import Navbar from "@/components/Navbar";
@@ -53,7 +53,6 @@ export default function ProfilePage() {
 
     const [profileUser, setProfileUser] = useState(null);
     const [recipes, setRecipes] = useState([]);
-    const [forumPosts, setForumPosts] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [followLoading, setFollowLoading] = useState(false);
@@ -69,12 +68,8 @@ export default function ProfilePage() {
 
             setProfileUser(user);
 
-            const [recipesData, postsData] = await Promise.all([
-                getRecipesByUser(username).catch(() => ({ recipes: [] })),
-                getPostsByUser(user.userId).catch(() => ({ posts: [] })),
-            ]);
+            const recipesData = await getRecipesByUser(username).catch(() => ({ recipes: [] }));
             setRecipes(recipesData.recipes ?? []);
-            setForumPosts(postsData.posts ?? []);
 
             if (currentUser && currentUser.uid !== user.userId) {
                 const following = await checkIfFollowing(currentUser.uid, user.userId).catch(() => false);
@@ -150,9 +145,19 @@ export default function ProfilePage() {
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <h1 className="text-2xl font-bold">@{profileUser.username}</h1>
                             {isOwnProfile ? (
-                                <Button variant="outline" size="sm" className="gap-1.5">
-                                    <IconEdit className="size-4" /> Edit Profile
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" className="gap-1.5">
+                                        <IconEdit className="size-4" /> Edit Profile
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1.5 text-muted-foreground hover:text-destructive"
+                                        onClick={() => logout().then(() => router.push("/login"))}
+                                    >
+                                        <IconLogout className="size-4" /> Logout
+                                    </Button>
+                                </div>
                             ) : (
                                 <Button
                                     size="sm"
@@ -203,14 +208,7 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="forums">
-                        {forumPosts.length > 0 ? (
-                            <div className="space-y-3">
-                                {/* {forumPosts.map(post => <ForumPostCard key={post.id} post={post} />)} */}
-                                <UserPosts userId={currentUser.uid} /> {/* TEMP: Just show 1 post for now since the design isn't finalized */}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No forum posts yet.</p>
-                        )}
+                        <UserPosts userId={profileUser.userId} />
                     </TabsContent>
                 </Tabs>
             </main>
