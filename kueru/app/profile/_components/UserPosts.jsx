@@ -22,7 +22,7 @@ function UserPosts({ userId }) {
     useEffect(() => {
         if (!userId) { return; }
         getPostsByUser(userId)
-            .then(setPosts)
+            .then(({ posts }) => setPosts(posts))
             .finally(() => setLoadingPosts(false));
     }, [userId]);
 
