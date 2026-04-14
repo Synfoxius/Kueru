@@ -49,6 +49,16 @@ export const getRecentPosts = async (lastDoc = null, limitCount = 15) => {
     return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
+export const getPostsByUser = async (userId) => {
+    const q = query(
+        collection(db, FORUM_COLLECTION),
+        where('userId', '==', userId),
+        orderBy('postedDateTime', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
 export const createPost = async (postData) => {
     const postsRef = collection(db, FORUM_COLLECTION);
     const docRef = await addDoc(postsRef, {

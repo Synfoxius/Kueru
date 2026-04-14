@@ -38,6 +38,16 @@ export const createComment = async (postId, userId, content, parentCommentId = n
     return commentRef.id;
 };
 
+export const getCommentsByUser = async (userId) => {
+    const q = query(
+        collection(db, COMMENTS_COLLECTION),
+        where('userId', '==', userId),
+        orderBy('postedDateTime', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
 export const getRepliesByComment = async (parentCommentId) => {
     const commentsRef = collection(db, COMMENTS_COLLECTION);
     const q = query(
