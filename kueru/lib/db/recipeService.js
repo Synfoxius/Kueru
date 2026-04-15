@@ -318,7 +318,23 @@ export const getRecipe = async (recipeId) => {
     const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
     const snap = await getDoc(recipeRef);
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() };
+
+    const recipe = { id: snap.id, ...snap.data() };
+    if (!recipe.userId) {
+        return recipe;
+    }
+
+    try {
+        const usersById = await getUsersByIds([recipe.userId]);
+        const author = usersById.get(recipe.userId);
+        if (author?.username) {
+            recipe.username = author.username;
+        }
+    } catch {
+        // Keep the recipe readable even if user enrichment fails.
+    }
+
+    return recipe;
 };
 
 export const createRecipe = async (recipeData = {}) => {
