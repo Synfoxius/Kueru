@@ -23,7 +23,7 @@ export default function RecipeInfoPanel({
                         tags.map((tag) => (
                             <span
                                 key={formatTagKey(tag)}
-                                className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-foreground"
+                                className="rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground"
                             >
                                 {tag}
                             </span>
@@ -33,7 +33,7 @@ export default function RecipeInfoPanel({
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-end gap-4">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <IconClock className="size-4" />
                         <span>{Number(time || 0)} mins</span>
@@ -42,15 +42,15 @@ export default function RecipeInfoPanel({
                         <IconUsers className="size-4" />
                         <span>{Number(servings || 0)} servings</span>
                     </div>
-                    <label className="space-y-1 text-xs text-muted-foreground">
-                        <span className="block">Desired servings</span>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Desired servings</span>
                         <Input
                             type="number"
                             min="1"
                             step="0.25"
                             value={desiredServings}
                             onChange={onDesiredServingsChange}
-                            className="w-28"
+                            className="h-8 w-28"
                         />
                     </label>
                     <Button type="button" onClick={onStart} disabled={!hasSteps}>

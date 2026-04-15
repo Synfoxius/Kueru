@@ -19,7 +19,7 @@ export default function RecipeIngredientsPanel({ ingredients = [] }) {
                             return (
                                 <span
                                     key={ingredient.name}
-                                    className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground"
+                                    className="rounded-full border border-accent bg-accent px-3 py-1 text-xs text-accent-foreground"
                                 >
                                     {quantity} {ingredient.name}
                                 </span>

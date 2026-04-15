@@ -6,7 +6,7 @@ const USERS_COLLECTION = "users";
 
 export const getRecipeInteractionState = async (userId, recipeId) => {
     if (!userId || !recipeId) {
-        return { hasUpvoted: false, hasSaved: false };
+        return { voteValue: 0, hasSaved: false };
     }
 
     const voteRef = doc(db, RECIPES_COLLECTION, recipeId, "votes", userId);
@@ -15,17 +15,22 @@ export const getRecipeInteractionState = async (userId, recipeId) => {
     const [voteSnap, saveSnap] = await Promise.all([getDoc(voteRef), getDoc(saveRef)]);
 
     return {
-        hasUpvoted: voteSnap.exists() && Number(voteSnap.data()?.value ?? 0) > 0,
+        voteValue: voteSnap.exists() ? Number(voteSnap.data()?.value ?? 0) : 0,
         hasSaved: saveSnap.exists(),
     };
 };
 
-export const toggleRecipeUpvote = async (userId, recipeId) => {
+export const setRecipeVote = async (userId, recipeId, requestedVoteValue) => {
     if (!userId) {
         throw new Error("You must be logged in to vote.");
     }
     if (!recipeId) {
         throw new Error("Recipe ID is required.");
+    }
+
+    const normalizedRequestedVote = Number(requestedVoteValue);
+    if (![1, -1].includes(normalizedRequestedVote)) {
+        throw new Error("Vote must be upvote or downvote.");
     }
 
     const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
@@ -40,18 +45,18 @@ export const toggleRecipeUpvote = async (userId, recipeId) => {
         const voteSnap = await transaction.get(voteRef);
         const currentVote = voteSnap.exists() ? Number(voteSnap.data()?.value ?? 0) : 0;
 
-        let nextVote = 1;
-        let incrementBy = 1;
+        let nextVote = normalizedRequestedVote;
+        let incrementBy = normalizedRequestedVote - currentVote;
 
-        if (currentVote > 0) {
+        // Pressing the same vote again clears the vote.
+        if (currentVote === normalizedRequestedVote) {
             nextVote = 0;
             incrementBy = -currentVote;
             transaction.delete(voteRef);
         } else {
-            incrementBy = 1 - currentVote;
             transaction.set(voteRef, {
                 userId,
-                value: 1,
+                value: normalizedRequestedVote,
                 votedAt: serverTimestamp(),
             });
         }
@@ -61,7 +66,7 @@ export const toggleRecipeUpvote = async (userId, recipeId) => {
         });
 
         return {
-            hasUpvoted: nextVote > 0,
+            voteValue: nextVote,
             upvoteDelta: incrementBy,
         };
     });

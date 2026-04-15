@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
+    IconArrowBigDown,
     IconArrowBigUp,
     IconArrowLeft,
     IconBookmark,
@@ -20,6 +21,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/context/AuthContext";
 import { getRecipe } from "@/lib/db/recipeService";
 import RecipeIngredientsPanel from "./_components/RecipeIngredientsPanel";
 import RecipeInfoPanel from "./_components/RecipeInfoPanel";
@@ -34,6 +36,7 @@ const formatCount = (value) => Number(value || 0).toLocaleString();
 export default function RecipeDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const recipeId = String(params?.id || "");
 
     const [loading, setLoading] = useState(true);
@@ -108,14 +111,15 @@ export default function RecipeDetailPage() {
     const {
         upvotes,
         savedCount,
-        hasUpvoted,
+        voteValue,
         hasSaved,
         isWorking,
         feedback,
         showLoginDialog,
         setShowLoginDialog,
         loginHref,
-        onVote,
+        onUpvote,
+        onDownvote,
         onSave,
         onShare,
     } = useRecipeInteractions({
@@ -142,8 +146,10 @@ export default function RecipeDetailPage() {
         setDesiredServings(nextValue);
     };
 
+    const canEditRecipe = Boolean(user?.uid && recipe?.userId && user.uid === recipe.userId);
+
     return (
-        <div className="min-h-screen bg-[#e6dfd8]">
+        <div className="min-h-screen bg-muted/30">
             <Navbar />
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 <Button type="button" variant="ghost" className="w-fit" onClick={handleBack}>
@@ -167,6 +173,11 @@ export default function RecipeDetailPage() {
                         <section className="space-y-1">
                             <h1 className="text-4xl font-semibold tracking-tight text-foreground">{recipe?.name || "Untitled Recipe"}</h1>
                             <p className="text-sm text-muted-foreground">by Chef {recipe?.username || "Unknown"}</p>
+                            {canEditRecipe ? (
+                                <Button asChild variant="outline" className="mt-2 w-fit">
+                                    <Link href={`/recipes/new?mode=edit&recipeId=${recipeId}`}>Edit Recipe</Link>
+                                </Button>
+                            ) : null}
                         </section>
 
                         <RecipeMediaCarousel images={recipe?.images} recipeName={recipe?.name} />
@@ -204,21 +215,39 @@ export default function RecipeDetailPage() {
 
                         <Card className="border-border bg-white">
                             <CardContent className="flex flex-wrap items-center gap-2 p-4">
-                                <Button
-                                    type="button"
-                                    variant={hasUpvoted ? "default" : "outline"}
-                                    onClick={onVote}
-                                    disabled={isWorking}
-                                >
-                                    <IconArrowBigUp className="size-4" />
-                                    {formatCount(upvotes)}
-                                </Button>
+                                <div className="inline-flex overflow-hidden rounded-lg border border-primary/25">
+                                    <Button
+                                        type="button"
+                                        variant={voteValue === 1 ? "default" : "outline"}
+                                        onClick={onUpvote}
+                                        disabled={isWorking}
+                                        className="rounded-none border-0"
+                                    >
+                                        <IconArrowBigUp className="size-4" />
+                                    </Button>
+                                    <span className="inline-flex min-w-16 items-center justify-center bg-primary px-3 text-sm font-medium text-primary-foreground">
+                                        {formatCount(upvotes)}
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant={voteValue === -1 ? "default" : "outline"}
+                                        onClick={onDownvote}
+                                        disabled={isWorking}
+                                        className="rounded-none border-0"
+                                    >
+                                        <IconArrowBigDown className="size-4" />
+                                    </Button>
+                                </div>
 
                                 <Button
                                     type="button"
-                                    variant={hasSaved ? "default" : "outline"}
+                                    variant="outline"
                                     onClick={onSave}
                                     disabled={isWorking}
+                                    className={hasSaved
+                                        ? "border-[#e7be4f] bg-[#f9d976] text-[#6b4a00] hover:bg-[#f2cf64]"
+                                        : "border-[#e7be4f] bg-white text-[#9b7000] hover:bg-[#fff4d1]"
+                                    }
                                 >
                                     <IconBookmark className="size-4" />
                                     {formatCount(savedCount)}
