@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUser } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
+import { deletePost } from "@/lib/db/forumService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil } from "@tabler/icons-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function timeAgo(timestamp) {
     if (!timestamp) return "";
@@ -21,11 +24,19 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, onDeleted }) {
     const { user } = useAuth();
+    const router = useRouter();
     const [username, setUsername] = useState(null);
     const [voteCount, setVoteCount] = useState(post.upvotesCount);
     const [userVote, setUserVote] = useState(null);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    const handleDelete = async () => {
+        await deletePost(post.id);
+        setShowDeleteDialog(false);
+        if (onDeleted) { onDeleted(post.id); }
+    };
     
     useEffect(() => {
         if (user) {
@@ -160,7 +171,6 @@ export default function PostCard({ post }) {
 
             </CardContent>
 
-            {/* "..." dropdown */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <button className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
@@ -168,6 +178,22 @@ export default function PostCard({ post }) {
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                    {user && user.uid === post.userId && (
+                        <>
+                            <DropdownMenuItem
+                                className="gap-2"
+                                onClick={() => router.push(`/forum/${post.id}?edit=true`)}
+                            >
+                                <IconPencil className="size-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="gap-2 text-destructive focus:text-destructive"
+                                onClick={() => setShowDeleteDialog(true)}
+                            >
+                                <IconTrash className="size-4" /> Delete
+                            </DropdownMenuItem>
+                        </>
+                    )}
                     <DropdownMenuItem className="gap-2">
                         <IconFlag className="size-4" /> Report
                     </DropdownMenuItem>
@@ -176,6 +202,16 @@ export default function PostCard({ post }) {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Delete post?"
+                description="This action cannot be undone. The post and all its comments will be permanently deleted."
+                confirmLabel="Delete"
+                destructive
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteDialog(false)}
+            />
         </Card>
     );
 }

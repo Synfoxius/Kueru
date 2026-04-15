@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getTopRecipes } from "@/lib/db/recipeService";
+import { getAllRecipes } from "@/lib/db/recipeService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -21,8 +21,8 @@ export default function RecipeOfTheDay() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getTopRecipes(20)
-            .then((recipes) => setRecipe(pickRecipeForToday(recipes)))
+        getAllRecipes({ sortField: "upvotes", sortDirection: "desc" }, null, 20)
+            .then(({ recipes }) => setRecipe(pickRecipeForToday(recipes)))
             .finally(() => setLoading(false));
     }, []);
 

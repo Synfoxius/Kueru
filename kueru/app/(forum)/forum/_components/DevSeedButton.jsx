@@ -56,11 +56,11 @@ export default function DevSeedButton() {
     const { user, userDoc } = useAuth();
 
     const handleSeed = async () => {
-        if (!user || !userDoc?.username) { alert("You must be logged in to seed a recipe."); return; }
+        if (!user) { alert("You must be logged in to seed a recipe."); return; }
         try {
             const ref = await addDoc(collection(db, "recipes"), {
                 ...SEED_RECIPE,
-                username: userDoc.username,
+                userId: user.uid,
                 createdAt: serverTimestamp(),
             });
             alert(`Seeded recipe: ${ref.id}`);

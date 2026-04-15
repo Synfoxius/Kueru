@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { getPost } from "@/lib/db/forumService";
@@ -15,6 +16,9 @@ import BackToForumButton from "../_components/BackToForumButton";
 export default function PostDetailPage({ params }) {
     const { id } = use(params);
     const { user } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const defaultEditing = searchParams.get("edit") === "true";
 
     // ── Post state ────────────────────────────────────────────────────────────
     const [post, setPost] = useState(null);
@@ -81,7 +85,7 @@ export default function PostDetailPage({ params }) {
 
                 <BackToForumButton />
 
-                <PostDetailCard post={post} />
+                <PostDetailCard post={post} onDeleted={() => router.push("/forum")} defaultEditing={defaultEditing} />
 
                 {/* ── Comments card ─────────────────────────────────────────── */}
                 <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">

@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { getUser } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
-import { IconArrowUp, IconArrowDown, IconMessageCircle, IconChefHat, IconPlayerPlay } from "@tabler/icons-react";
+import { updatePost, deletePost } from "@/lib/db/forumService";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { IconArrowUp, IconArrowDown, IconMessageCircle, IconChefHat, IconPencil, IconCheck, IconX, IconDots, IconTrash } from "@tabler/icons-react";
 import ImageGallery from "./ImageGallery";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function timeAgo(timestamp) {
     if (!timestamp) { return ""; }
@@ -18,11 +22,22 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function PostDetailCard({ post }) {
+export default function PostDetailCard({ post, onDeleted, defaultEditing = false }) {
     const { user } = useAuth();
     const [postAuthor, setPostAuthor] = useState(null);
     const [voteCount, setVoteCount] = useState(post.upvotesCount ?? 0);
     const [userVote, setUserVote] = useState(null);
+
+    const [isEditing, setIsEditing] = useState(defaultEditing);
+    const [editContent, setEditContent] = useState(post.content ?? "");
+    const [currentContent, setCurrentContent] = useState(post.content ?? "");
+    const [editedAt, setEditedAt] = useState(post.editedDateTime ?? null);
+    const [saving, setSaving] = useState(false);
+
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+    const isOwner = user?.uid === post.userId;
 
     useEffect(() => {
         if (post.userId) {
@@ -50,13 +65,68 @@ export default function PostDetailCard({ post }) {
         }
     };
 
+    const handleEditStart = () => {
+        setEditContent(currentContent);
+        setIsEditing(true);
+    };
+
+    const handleEditCancel = () => {
+        setIsEditing(false);
+        setEditContent(currentContent);
+    };
+
+    const handleEditSave = async () => {
+        if (editContent.trim() === currentContent) { setIsEditing(false); return; }
+        setSaving(true);
+        try {
+            await updatePost(post.id, editContent.trim());
+            setCurrentContent(editContent.trim());
+            setEditedAt(new Date());
+            setIsEditing(false);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        await deletePost(post.id);
+        setShowDeleteDialog(false);
+        if (onDeleted) { onDeleted(); }
+    };
+
     const tags = post.postType === "Discussion"
         ? (post.postCategory ? [post.postCategory] : [])
         : (post.tags ?? []);
 
     return (
-        <div className="rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
+        <div className="relative rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
 
+            {/* "..." dropdown — owner only */}
+            {isOwner && (
+                <div className="absolute top-3 right-3">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                                <IconDots className="size-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                className="gap-2"
+                                onClick={handleEditStart}
+                            >
+                                <IconPencil className="size-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="gap-2 text-destructive focus:text-destructive"
+                                onClick={() => setShowDeleteDialog(true)}
+                            >
+                                <IconTrash className="size-4" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            )}
 
             {/* Post body */}
             <div className="p-6 flex gap-4">
@@ -96,7 +166,7 @@ export default function PostDetailCard({ post }) {
                     <h1 className="text-xl font-bold text-foreground leading-snug">{post.title}</h1>
 
                     {/* Meta */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                         <span>
                             Posted by{" "}
                             <Link
@@ -108,6 +178,12 @@ export default function PostDetailCard({ post }) {
                         </span>
                         <span>·</span>
                         <span>{timeAgo(post.postedDateTime)}</span>
+                        {editedAt && (
+                            <>
+                                <span>·</span>
+                                <span className="italic">edited {timeAgo(editedAt)}</span>
+                            </>
+                        )}
                         <span>·</span>
                         <span className="flex items-center gap-1">
                             <IconMessageCircle className="size-3" />
@@ -115,9 +191,41 @@ export default function PostDetailCard({ post }) {
                         </span>
                     </div>
 
-                    {/* Body text */}
-                    {post.content && (
-                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                    {/* Body text / edit textarea */}
+                    {isEditing ? (
+                        <div className="flex flex-col gap-2">
+                            <textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                rows={6}
+                                autoFocus
+                                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none leading-relaxed transition-colors"
+                            />
+                            <div className="flex items-center gap-2 justify-end">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleEditCancel}
+                                    className="gap-1.5 text-muted-foreground"
+                                >
+                                    <IconX className="size-3.5" />
+                                    Cancel
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    onClick={() => setShowSaveDialog(true)}
+                                    disabled={saving || !editContent.trim()}
+                                    className="gap-1.5"
+                                >
+                                    <IconCheck className="size-3.5" />
+                                    {saving ? "Saving..." : "Save"}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        currentContent && (
+                            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{currentContent}</p>
+                        )
                     )}
 
                     {/* Recipe link */}
@@ -157,6 +265,25 @@ export default function PostDetailCard({ post }) {
 
             </div>
             {/* End post body */}
+
+            <ConfirmDialog
+                open={showSaveDialog}
+                title="Save changes?"
+                description="Are you sure you want to save these changes to your post?"
+                confirmLabel="Save"
+                onConfirm={() => { setShowSaveDialog(false); handleEditSave(); }}
+                onCancel={() => setShowSaveDialog(false)}
+            />
+
+            <ConfirmDialog
+                open={showDeleteDialog}
+                title="Delete post?"
+                description="This action cannot be undone. The post and all its comments will be permanently deleted."
+                confirmLabel="Delete"
+                destructive
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteDialog(false)}
+            />
 
         </div>
     );
