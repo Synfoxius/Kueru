@@ -189,7 +189,7 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
     }
 
     if (filters.verification !== 'include_all') {
-        const authorId = recipe.username;
+        const authorId = recipe.userId;
         const isVerified = usersById.get(authorId)?.verified === true;
 
         if (filters.verification === 'verified_only' && !isVerified) {
@@ -264,13 +264,19 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
             doc: recipeDoc,
             recipe: { id: recipeDoc.id, ...recipeDoc.data() },
         }));
-        const authorIds = batchItems.map((item) => item.recipe.username).filter(Boolean);
+        const authorIds = batchItems.map((item) => item.recipe.userId).filter(Boolean);
         const usersById = await getUsersByIds(authorIds);
 
         let reachedTargetCount = false;
 
         for (const item of batchItems) {
             resultingLastDoc = item.doc;
+
+            // Enrich recipe with username for UI components
+            const author = usersById.get(item.recipe.userId);
+            if (author?.username) {
+                item.recipe.username = author.username;
+            }
 
             if (recipeMatchesFilters(item.recipe, normalizedFilters, usersById)) {
                 collectedRecipes.push(item.recipe);
@@ -297,11 +303,11 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
     return { recipes: sortedRecipes.slice(0, targetCount), lastDoc: resultingLastDoc };
 };
 
-export const getRecipesByUser = async (username, lastDoc = null, limitCount = 10) => {
+export const getRecipesByUser = async (userId, lastDoc = null, limitCount = 10) => {
     const recipesRef = collection(db, RECIPES_COLLECTION);
     
     let queryConstraints = [
-        where('username', '==', username),
+        where('userId', '==', userId),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
     ];

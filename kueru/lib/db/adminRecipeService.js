@@ -4,7 +4,7 @@ import { adminDB } from '../firebase/backend_config';
 const RECIPES_COLLECTION = 'recipes';
 
 export const createRecipe = async (recipeData) => {
-    const creatorId = recipeData.username; // Schema specified "username" field holds the user ID
+    const creatorId = recipeData.userId; // Schema specified "userId" field holds the user ID
     
     // Pre-generate a doc ref ID
     const newRecipeRef = adminDB.collection(RECIPES_COLLECTION).doc();
