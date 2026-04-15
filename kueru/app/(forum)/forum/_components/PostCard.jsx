@@ -24,7 +24,7 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function PostCard({ post, onDeleted, isHidden = false, onHidden, onUnhidden }) {
+export default function PostCard({ post, onDeleted, isHidden = false, onHidden, onUnhidden, onSaved, onUnsaved }) {
     const { user } = useAuth();
     const router = useRouter();
     const [username, setUsername] = useState(null);
@@ -87,9 +87,11 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
         if (isSaved) {
             await unsavePost(user.uid, post.id);
             setIsSaved(false);
+            if (onUnsaved) { onUnsaved(post.id); }
         } else {
             await savePost(user.uid, post.id);
             setIsSaved(true);
+            if (onSaved) { onSaved(post); }
         }
     };
 
