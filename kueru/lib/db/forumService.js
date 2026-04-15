@@ -49,6 +49,26 @@ export const getRecentPosts = async (lastDoc = null, limitCount = 15) => {
     return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
+export const getPostsByUser = async (userId, lastDoc = null, limitCount = 10) => {
+    const postsRef = collection(db, FORUM_COLLECTION);
+
+    let queryConstraints = [
+        where('userId', '==', userId),
+        orderBy('postedDateTime', 'desc'),
+        limit(limitCount),
+    ];
+
+    if (lastDoc) {
+        queryConstraints.push(startAfter(lastDoc));
+    }
+
+    const q = query(postsRef, ...queryConstraints);
+    const snap = await getDocs(q);
+
+    const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
 export const createPost = async (postData) => {
     const postsRef = collection(db, FORUM_COLLECTION);
     const docRef = await addDoc(postsRef, {

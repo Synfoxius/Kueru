@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import { loginWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
 import { getUser } from "@/lib/db/userService";
 import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
+import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
+
+    useEffect(() => {
+        if (!authLoading && user) router.replace("/profile");
+    }, [user, authLoading, router]);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +63,9 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col md:flex-row">
+        <>
+        <ConditionalNavbar />
+        <div className="flex flex-col md:flex-row" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
 
             {/* BRANDING PANEL — compact strip on mobile, full side panel on desktop */}
             <div className="relative flex md:flex-1 flex-col items-center justify-center overflow-hidden bg-primary text-primary-foreground py-8 md:py-0">
@@ -184,5 +193,6 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

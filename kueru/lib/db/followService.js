@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
 
 const FOLLOWS_COLLECTION = 'follows';
 
@@ -35,4 +35,34 @@ export const checkIfFollowing = async (followerId, followingId) => {
     const followRef = doc(db, FOLLOWS_COLLECTION, `${followerId}_${followingId}`);
     const snap = await getDoc(followRef);
     return snap.exists();
+};
+
+/**
+ * Follow a user. Atomically creates the follow doc and increments both counters.
+ * @param {string} followerId - UID of the user doing the following
+ * @param {string} followingId - UID of the user being followed
+ */
+export const followUser = async (followerId, followingId) => {
+    const batch = writeBatch(db);
+    batch.set(doc(db, FOLLOWS_COLLECTION, `${followerId}_${followingId}`), {
+        followerId,
+        followingId,
+        createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'users', followingId), { followerCount: increment(1) });
+    batch.update(doc(db, 'users', followerId), { followingCount: increment(1) });
+    await batch.commit();
+};
+
+/**
+ * Unfollow a user. Atomically deletes the follow doc and decrements both counters.
+ * @param {string} followerId
+ * @param {string} followingId
+ */
+export const unfollowUser = async (followerId, followingId) => {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, FOLLOWS_COLLECTION, `${followerId}_${followingId}`));
+    batch.update(doc(db, 'users', followingId), { followerCount: increment(-1) });
+    batch.update(doc(db, 'users', followerId), { followingCount: increment(-1) });
+    await batch.commit();
 };

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import { registerWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
 import { createUser, getUser, getUserByUsername } from "@/lib/db/userService";
 import { IconUser, IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
+import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +24,11 @@ const FIREBASE_ERRORS = {
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
+
+    useEffect(() => {
+        if (!authLoading && user) router.replace("/profile");
+    }, [user, authLoading, router]);
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -102,7 +109,9 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col md:flex-row">
+        <>
+        <ConditionalNavbar />
+        <div className="flex flex-col md:flex-row" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
 
             {/* LEFT PANEL — form */}
             <div className="flex flex-1 items-center justify-center bg-background px-6 py-10 md:px-10">
@@ -258,5 +267,6 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
