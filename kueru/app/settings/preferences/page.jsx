@@ -79,6 +79,10 @@ export default function PreferencesPage() {
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+        if (!loading && !user) router.push("/login");
+    }, [loading, user, router]);
+
     // Populate from existing userDoc once loaded
     useEffect(() => {
         if (!userDoc?.onboarding) return;
@@ -89,7 +93,7 @@ export default function PreferencesPage() {
         setRecipeInterests(recipeInterests);
     }, [userDoc]);
 
-    if (loading) {
+    if (loading || !user) {
         return (
             <>
                 <ConditionalNavbar />
@@ -98,11 +102,6 @@ export default function PreferencesPage() {
                 </div>
             </>
         );
-    }
-
-    if (!user) {
-        router.push("/login");
-        return null;
     }
 
     const toggleItem = (setter) => (item) =>

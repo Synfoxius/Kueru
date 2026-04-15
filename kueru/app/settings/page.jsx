@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
@@ -44,7 +44,11 @@ export default function SettingsPage() {
 
     const [resetStatus, setResetStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
 
-    if (loading) {
+    useEffect(() => {
+        if (!loading && !user) router.push("/login");
+    }, [loading, user, router]);
+
+    if (loading || !user) {
         return (
             <>
                 <ConditionalNavbar />
@@ -53,11 +57,6 @@ export default function SettingsPage() {
                 </div>
             </>
         );
-    }
-
-    if (!user) {
-        router.push("/login");
-        return null;
     }
 
     // Detect Google-only accounts (no password provider)
