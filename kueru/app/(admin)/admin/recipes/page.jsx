@@ -1,11 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/api/adminFetch";
 import DataTable from "../../_components/DataTable";
-import ConfirmDialog from "../../_components/ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IconTrash } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
+import { IconArchive, IconRefresh, IconTrash } from "@tabler/icons-react";
+
+const STATUS_VARIANT = {
+    available: "default",
+    pending: "secondary",
+    deleted: "destructive",
+    archived: "outline",
+};
+
+const FILTERS = [
+    { value: "all",       label: "All" },
+    { value: "available", label: "Available" },
+    { value: "pending",   label: "Pending" },
+    { value: "deleted",   label: "Deleted" },
+    { value: "archived",  label: "Archived" },
+];
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -15,7 +32,16 @@ function formatDate(ts) {
 
 const columns = [
     { key: "name", label: "Name" },
-    { key: "userId", label: "Author ID" },
+    { key: "authorUsername", label: "Author" },
+    {
+        key: "status",
+        label: "Status",
+        render: (row) => (
+            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
+                {row.status ?? "—"}
+            </Badge>
+        ),
+    },
     { key: "upvotes", label: "Upvotes" },
     { key: "saved", label: "Saves" },
     {
@@ -26,10 +52,11 @@ const columns = [
 ];
 
 export default function RecipesPage() {
+    const router = useRouter();
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [activeFilter, setActiveFilter] = useState("all");
+    const [togglingId, setTogglingId] = useState(null);
 
     const fetchRecipes = useCallback(async () => {
         setLoading(true);
@@ -46,30 +73,69 @@ export default function RecipesPage() {
         fetchRecipes();
     }, [fetchRecipes]);
 
-    const handleDelete = async () => {
-        if (!deleteTarget) return;
-        setDeleteLoading(true);
+    const counts = useMemo(() => {
+        const c = { all: recipes.length, available: 0, pending: 0, deleted: 0, archived: 0 };
+        recipes.forEach((r) => { if (r.status in c) c[r.status]++; });
+        return c;
+    }, [recipes]);
+
+    const filtered = useMemo(
+        () =>
+            activeFilter === "all"
+                ? recipes
+                : recipes.filter((r) => r.status === activeFilter),
+        [recipes, activeFilter]
+    );
+
+    const handleToggleStatus = async (row) => {
+        const newStatus = row.status === "deleted" ? "available" : "deleted";
+        setTogglingId(row.id);
         try {
-            await adminFetch(`/api/admin/recipes/${deleteTarget.id}`, {
-                method: "DELETE",
+            await adminFetch(`/api/admin/recipes/${row.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: newStatus }),
             });
-            setRecipes((prev) => prev.filter((r) => r.id !== deleteTarget.id));
-            setDeleteTarget(null);
+            setRecipes((prev) =>
+                prev.map((r) => (r.id === row.id ? { ...r, status: newStatus } : r))
+            );
         } finally {
-            setDeleteLoading(false);
+            setTogglingId(null);
         }
     };
 
-    const renderActions = (row) => (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => setDeleteTarget(row)}
-        >
-            <IconTrash className="size-4" />
-        </Button>
-    );
+    const renderActions = (row) => {
+        const isDeleted = row.status === "deleted";
+        const isToggling = togglingId === row.id;
+        return (
+            <div className="flex items-center justify-end gap-2">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/admin/recipes/${row.id}`)}
+                >
+                    View
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isToggling}
+                    className={
+                        isDeleted
+                            ? "text-green-600 hover:bg-green-50 hover:text-green-700"
+                            : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    }
+                    onClick={() => handleToggleStatus(row)}
+                    title={isDeleted ? "Restore to available" : "Set as deleted"}
+                >
+                    {isDeleted ? (
+                        <IconRefresh className="size-4" />
+                    ) : (
+                        <IconTrash className="size-4" />
+                    )}
+                </Button>
+            </div>
+        );
+    };
 
     return (
         <div className="p-6">
@@ -77,21 +143,34 @@ export default function RecipesPage() {
             <p className="mb-6 text-sm text-muted-foreground">
                 {recipes.length} recipe{recipes.length !== 1 ? "s" : ""} total
             </p>
+
+            {/* Status filter */}
+            <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
+                {FILTERS.map((f) => (
+                    <button
+                        key={f.value}
+                        onClick={() => setActiveFilter(f.value)}
+                        className={cn(
+                            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                            activeFilter === f.value
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        {f.label}
+                        <span className="ml-1.5 text-xs opacity-60">
+                            {counts[f.value]}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
             <DataTable
                 columns={columns}
-                data={recipes}
+                data={filtered}
                 loading={loading}
                 renderActions={renderActions}
                 emptyMessage="No recipes found."
-            />
-            <ConfirmDialog
-                open={!!deleteTarget}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-                title="Delete Recipe"
-                description={`Are you sure you want to permanently delete "${deleteTarget?.name}"? This cannot be undone.`}
-                confirmLabel="Delete"
-                onConfirm={handleDelete}
-                loading={deleteLoading}
             />
         </div>
     );
