@@ -155,6 +155,7 @@ function ConnectionsPage() {
 
     return (
         <>
+            <title>Connections | Kueru</title>
             <ConditionalNavbar />
             <main className="w-full px-8 sm:px-12 lg:px-20 py-10 space-y-8">
                 <div className="flex items-center justify-between gap-8">

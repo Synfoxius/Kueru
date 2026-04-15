@@ -74,6 +74,7 @@ function LoginForm() {
 
     return (
         <>
+        <title>Log In | Kueru</title>
         <ConditionalNavbar />
         <div className="flex flex-col md:flex-row" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
 

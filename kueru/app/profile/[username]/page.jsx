@@ -101,6 +101,7 @@ export default function ProfilePage() {
 
     return (
         <>
+            <title>{profileUser ? `@${profileUser.username} | Kueru` : "Profile | Kueru"}</title>
             <ConditionalNavbar />
                 <main className="w-full px-8 sm:px-12 lg:px-20 py-8">
 

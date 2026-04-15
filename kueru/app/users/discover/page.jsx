@@ -127,6 +127,7 @@ export default function DiscoverUsersPage() {
 
     return (
         <>
+            <title>Discover Users | Kueru</title>
             <ConditionalNavbar />
             <main className="w-full px-8 sm:px-12 lg:px-20 py-10 space-y-6">
                 <h1 className="text-2xl font-bold">Discover Users</h1>

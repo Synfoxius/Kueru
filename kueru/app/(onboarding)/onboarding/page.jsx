@@ -316,6 +316,8 @@ function OnboardingPage() {
     const meta = STEP_META[step] ?? STEP_META[1];
 
     return (
+        <>
+        <title>Getting Started | Kueru</title>
         <div className="flex min-h-screen flex-col md:flex-row">
 
             {/* LEFT PANEL — form */}
@@ -358,6 +360,7 @@ function OnboardingPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

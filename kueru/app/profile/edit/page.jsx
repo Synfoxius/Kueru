@@ -102,6 +102,7 @@ export default function EditProfilePage() {
 
     return (
         <>
+            <title>Edit Profile | Kueru</title>
             <Navbar />
             <main className="mx-auto max-w-2xl px-4 py-8 space-y-6">
 
