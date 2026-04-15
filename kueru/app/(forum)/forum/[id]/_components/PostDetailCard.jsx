@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { getUser } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
 import { updatePost, deletePost } from "@/lib/db/forumService";
+import { getRecipe } from "@/lib/db/recipeService";
+import { getUser, savePost, unsavePost } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconMessageCircle, IconChefHat, IconPencil, IconCheck, IconX, IconDots, IconTrash } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ImageGallery from "./ImageGallery";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import RecipePreviewCard from "@/app/(forum)/forum/_components/RecipePreviewCard";
 
 function timeAgo(timestamp) {
     if (!timestamp) { return ""; }
@@ -36,6 +38,8 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
 
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [linkedRecipe, setLinkedRecipe] = useState(null);
+    const [isSaved, setIsSaved] = useState(false);
 
     const isOwner = user?.uid === post.userId;
 
@@ -50,6 +54,31 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
             getUserVoteOnTarget(user.uid, post.id).then(setUserVote);
         }
     }, [user, post.id]);
+
+    useEffect(() => {
+        if (post.postType === "Recipe" && post.recipeId) {
+            getRecipe(post.recipeId).then(setLinkedRecipe);
+        }
+    }, [post.postType, post.recipeId]);
+
+    useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                setIsSaved(u?.savedPosts?.includes(post.id) ?? false);
+            });
+        }
+    }, [user, post.id]);
+
+    const handleSave = async () => {
+        if (!user) { return; }
+        if (isSaved) {
+            await unsavePost(user.uid, post.id);
+            setIsSaved(false);
+        } else {
+            await savePost(user.uid, post.id);
+            setIsSaved(true);
+        }
+    };
 
     const handleVote = async (value) => {
         if (!user) { return; }
@@ -101,8 +130,8 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
     return (
         <div className="relative rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
 
-            {/* "..." dropdown — owner only */}
-            {isOwner && (
+            {/* "..." dropdown */}
+            {user && (
                 <div className="absolute top-3 right-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -111,18 +140,26 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                                className="gap-2"
-                                onClick={handleEditStart}
-                            >
-                                <IconPencil className="size-4" /> Edit
+                            <DropdownMenuItem className="gap-2" onClick={handleSave}>
+                                {isSaved ? <IconBookmarkFilled className="size-4" /> : <IconBookmark className="size-4" />}
+                                {isSaved ? "Unsave" : "Save"}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                                className="gap-2 text-destructive focus:text-destructive"
-                                onClick={() => setShowDeleteDialog(true)}
-                            >
-                                <IconTrash className="size-4" /> Delete
-                            </DropdownMenuItem>
+                            {isOwner && (
+                                <>
+                                    <DropdownMenuItem
+                                        className="gap-2"
+                                        onClick={handleEditStart}
+                                    >
+                                        <IconPencil className="size-4" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="gap-2 text-destructive focus:text-destructive"
+                                        onClick={() => setShowDeleteDialog(true)}
+                                    >
+                                        <IconTrash className="size-4" /> Delete
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -228,15 +265,9 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                         )
                     )}
 
-                    {/* Recipe link */}
-                    {post.postType === "Recipe" && post.recipeId && (
-                        <Link
-                            href={`/recipe/${post.recipeId}`}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-sm text-primary font-medium hover:bg-primary/10 transition-colors w-fit"
-                        >
-                            <IconChefHat className="size-4 shrink-0" />
-                            View Recipe
-                        </Link>
+                    {/* Recipe preview */}
+                    {post.postType === "Recipe" && post.recipeId && linkedRecipe && (
+                        <RecipePreviewCard recipe={linkedRecipe} linkable={true} />
                     )}
 
                     {/* Video embed */}
