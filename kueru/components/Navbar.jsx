@@ -24,7 +24,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings } from "@tabler/icons-react";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup } from "@tabler/icons-react";
 
 /**
  * Extracts up to two initials from a username string.
@@ -158,6 +158,12 @@ export default function Navbar() {
                                     <Link href="/profile" className="cursor-pointer gap-2">
                                         <IconUser className="size-4" />
                                         My Profile
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/users/discover" className="cursor-pointer gap-2">
+                                        <IconUsersGroup className="size-4" />
+                                        Discover Users
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>

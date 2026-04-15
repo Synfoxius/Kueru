@@ -1,5 +1,6 @@
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
+import { getUser } from './userService';
 
 const FOLLOWS_COLLECTION = 'follows';
 
@@ -65,4 +66,24 @@ export const unfollowUser = async (followerId, followingId) => {
     batch.update(doc(db, 'users', followingId), { followerCount: increment(-1) });
     batch.update(doc(db, 'users', followerId), { followingCount: increment(-1) });
     await batch.commit();
+};
+
+/**
+ * Get all followers of a user with their full profile data.
+ * @param {string} userId
+ */
+export const getFollowersWithProfiles = async (userId) => {
+    const follows = await getFollowers(userId);
+    const profiles = await Promise.all(follows.map(f => getUser(f.followerId)));
+    return profiles.filter(Boolean);
+};
+
+/**
+ * Get all users a user is following with their full profile data.
+ * @param {string} userId
+ */
+export const getFollowingWithProfiles = async (userId) => {
+    const follows = await getFollowing(userId);
+    const profiles = await Promise.all(follows.map(f => getUser(f.followingId)));
+    return profiles.filter(Boolean);
 };

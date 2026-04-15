@@ -140,12 +140,13 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
             _savedMetadata: referenceDoc.data()
         };
     });
-    
+
     const recipes = await Promise.all(recipePromises);
-    
+
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
+<<<<<<< HEAD
     const chunkArray = (items, size) => {
         const chunks = [];
         for (let index = 0; index < items.length; index += size) {
@@ -226,3 +227,31 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
 
         return usersById;
     };
+=======
+/**
+ * Search users by username prefix, optionally filtered by role.
+ * @param {string} searchTerm
+ * @param {'all'|'chef'|'customer'} role
+ * @param {number} limitCount
+ */
+export const searchUsers = async (searchTerm = '', role = 'all', limitCount = 20) => {
+    if (!searchTerm.trim()) return [];
+
+    const usersRef = collection(db, USERS_COLLECTION);
+    const term = searchTerm.toLowerCase();
+    const constraints = [
+        where('onboardingComplete', '==', true),
+        where('username', '>=', term),
+        where('username', '<=', term + '\uf8ff'),
+        limit(limitCount),
+    ];
+
+    if (role !== 'all') {
+        constraints.push(where('role', '==', role === 'chef' ? 'chef' : 'customer'));
+    }
+
+    const q = query(usersRef, ...constraints);
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+>>>>>>> origin/feature/profile
