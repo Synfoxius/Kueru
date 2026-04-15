@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import CookingTimeRangeControl from "./CookingTimeRangeControl";
+import OnboardingPreferenceFilters from "./OnboardingPreferenceFilters";
 
 const VERIFICATION_OPTIONS = [
     { value: "include_all", label: "Verified chefs included" },
@@ -18,13 +19,22 @@ const toggleArrayItem = (items, item) => {
     return [...items, item];
 };
 
-export default function RecipeFiltersPanel({ filters, availableTags, availableIngredients, onFiltersChange, onReset }) {
+export default function RecipeFiltersPanel({
+    filters,
+    availableTags,
+    availableIngredients,
+    showOnboardingFilters,
+    onboardingDietaryOptions,
+    onboardingAllergyOptions,
+    onboardingInterestOptions,
+    onFiltersChange,
+    onReset,
+}) {
     return (
         <Card className="border-border bg-card lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-auto">
             <CardContent className="space-y-5 p-5">
                 <div className="space-y-1">
-                    <h1 className="text-xl font-semibold tracking-tight text-foreground">Find Recipes</h1>
-                    <p className="text-sm text-muted-foreground">Search and refine recipes with detailed filters.</p>
+                    <h1 className="text-xl font-semibold tracking-tight text-foreground">Filter Recipes</h1>
                 </div>
 
                 <div className="space-y-2">
@@ -149,6 +159,34 @@ export default function RecipeFiltersPanel({ filters, availableTags, availableIn
                         ))}
                     </div>
                 </div>
+
+                <OnboardingPreferenceFilters
+                    show={showOnboardingFilters}
+                    dietaryOptions={onboardingDietaryOptions}
+                    allergyOptions={onboardingAllergyOptions}
+                    interestOptions={onboardingInterestOptions}
+                    selectedDietary={filters.onboardingDietaryPreferences}
+                    selectedExcludedAllergies={filters.onboardingExcludedAllergies}
+                    selectedInterests={filters.onboardingRecipeInterests}
+                    onDietaryChange={(nextDietary) =>
+                        onFiltersChange((previous) => ({
+                            ...previous,
+                            onboardingDietaryPreferences: nextDietary,
+                        }))
+                    }
+                    onExcludedAllergiesChange={(nextExcludedAllergies) =>
+                        onFiltersChange((previous) => ({
+                            ...previous,
+                            onboardingExcludedAllergies: nextExcludedAllergies,
+                        }))
+                    }
+                    onInterestsChange={(nextInterests) =>
+                        onFiltersChange((previous) => ({
+                            ...previous,
+                            onboardingRecipeInterests: nextInterests,
+                        }))
+                    }
+                />
 
                 <Button type="button" variant="outline" className="w-full" onClick={onReset}>
                     Reset Filters

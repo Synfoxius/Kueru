@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
 import { getAllRecipes, getAvailableRecipeIngredients, getAvailableRecipeTags } from "@/lib/db/recipeService";
 import RecipeFiltersPanel from "./_components/RecipeFiltersPanel";
 import SortControls from "./_components/SortControls";
@@ -15,6 +16,9 @@ const DEFAULT_FILTERS = {
     searchTerm: "",
     tags: [],
     ingredients: [],
+    onboardingDietaryPreferences: [],
+    onboardingRecipeInterests: [],
+    onboardingExcludedAllergies: [],
     timeRange: DEFAULT_TIME_RANGE,
     minServings: "",
     maxServings: "",
@@ -32,6 +36,14 @@ const parseDelimitedList = (value) => {
         .split(",")
         .map((item) => decodeURIComponent(item.trim()))
         .filter(Boolean);
+};
+
+const normalizeStringArray = (items) => {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+
+    return [...new Set(items.map((item) => String(item).trim()).filter(Boolean))];
 };
 
 const toNumericOrNull = (value) => {
@@ -58,6 +70,9 @@ const parseInitialFilters = (searchParams) => {
         searchTerm: searchParams.get("searchTerm") || "",
         tags: parseDelimitedList(searchParams.get("tags")),
         ingredients: parseDelimitedList(searchParams.get("ingredients")),
+        onboardingDietaryPreferences: parseDelimitedList(searchParams.get("onboardingDietary")),
+        onboardingRecipeInterests: parseDelimitedList(searchParams.get("onboardingInterests")),
+        onboardingExcludedAllergies: parseDelimitedList(searchParams.get("onboardingExcludedAllergies")),
         timeRange: [Math.min(minTime, maxTime), Math.max(minTime, maxTime)],
         minServings: searchParams.get("minServings") || "",
         maxServings: searchParams.get("maxServings") || "",
@@ -73,6 +88,9 @@ const toDbFilters = (filters) => ({
     searchTerm: filters.searchTerm,
     tags: filters.tags,
     ingredients: filters.ingredients,
+    onboardingDietaryPreferences: filters.onboardingDietaryPreferences,
+    onboardingRecipeInterests: filters.onboardingRecipeInterests,
+    onboardingExcludedAllergies: filters.onboardingExcludedAllergies,
     minTime: filters.timeRange[0],
     maxTime: filters.timeRange[1],
     minServings: filters.minServings,
@@ -88,6 +106,15 @@ const toQueryString = (filters) => {
     if (filters.searchTerm) params.set("searchTerm", filters.searchTerm);
     if (filters.tags.length > 0) params.set("tags", filters.tags.join(","));
     if (filters.ingredients.length > 0) params.set("ingredients", filters.ingredients.join(","));
+    if (filters.onboardingDietaryPreferences.length > 0) {
+        params.set("onboardingDietary", filters.onboardingDietaryPreferences.join(","));
+    }
+    if (filters.onboardingRecipeInterests.length > 0) {
+        params.set("onboardingInterests", filters.onboardingRecipeInterests.join(","));
+    }
+    if (filters.onboardingExcludedAllergies.length > 0) {
+        params.set("onboardingExcludedAllergies", filters.onboardingExcludedAllergies.join(","));
+    }
 
     if (filters.timeRange[0] !== DEFAULT_TIME_RANGE[0]) params.set("minTime", String(filters.timeRange[0]));
     if (filters.timeRange[1] !== DEFAULT_TIME_RANGE[1]) params.set("maxTime", String(filters.timeRange[1]));
@@ -105,7 +132,9 @@ const toQueryString = (filters) => {
 export default function FindRecipesPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user, userDoc } = useAuth();
     const initialFiltersRef = useRef(null);
+    const appliedAllergyDefaultsForUserRef = useRef(null);
 
     if (!initialFiltersRef.current) {
         initialFiltersRef.current = parseInitialFilters(searchParams);
@@ -122,7 +151,46 @@ export default function FindRecipesPage() {
     const [hasMore, setHasMore] = useState(false);
     const requestIdRef = useRef(0);
 
+    const onboarding = userDoc?.onboarding;
+    const onboardingDietaryOptions = useMemo(
+        () => normalizeStringArray(onboarding?.dietaryPreferences),
+        [onboarding?.dietaryPreferences]
+    );
+    const onboardingAllergyOptions = useMemo(
+        () => normalizeStringArray(onboarding?.foodAllergies),
+        [onboarding?.foodAllergies]
+    );
+    const onboardingInterestOptions = useMemo(
+        () => normalizeStringArray(onboarding?.recipeInterests),
+        [onboarding?.recipeInterests]
+    );
+
     const dbFilters = useMemo(() => toDbFilters(filters), [filters]);
+
+    useEffect(() => {
+        if (!user?.uid) {
+            appliedAllergyDefaultsForUserRef.current = null;
+            return;
+        }
+
+        if (!userDoc) {
+            return;
+        }
+
+        if (appliedAllergyDefaultsForUserRef.current === user.uid) {
+            return;
+        }
+
+        const hasExistingAllergySelection = initialFiltersRef.current.onboardingExcludedAllergies.length > 0;
+        if (!hasExistingAllergySelection && onboardingAllergyOptions.length > 0) {
+            setFilters((previous) => ({
+                ...previous,
+                onboardingExcludedAllergies: onboardingAllergyOptions,
+            }));
+        }
+
+        appliedAllergyDefaultsForUserRef.current = user.uid;
+    }, [onboardingAllergyOptions, user?.uid, userDoc]);
 
     useEffect(() => {
         let isMounted = true;
@@ -231,6 +299,10 @@ export default function FindRecipesPage() {
                         filters={filters}
                         availableTags={availableTags}
                         availableIngredients={availableIngredients}
+                        showOnboardingFilters={Boolean(user)}
+                        onboardingDietaryOptions={onboardingDietaryOptions}
+                        onboardingAllergyOptions={onboardingAllergyOptions}
+                        onboardingInterestOptions={onboardingInterestOptions}
                         onFiltersChange={setFilters}
                         onReset={() => setFilters({ ...DEFAULT_FILTERS })}
                     />

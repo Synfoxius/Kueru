@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter } from 'firebase/firestore';
+import { arrayUnion, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
 
 const RECIPES_COLLECTION = 'recipes';
@@ -33,10 +33,65 @@ const normalizeStringArray = (value) => {
     return [...new Set(value.map((item) => String(item).trim()).filter(Boolean))];
 };
 
+const normalizeLowercaseSet = (items) => {
+    return new Set(normalizeStringArray(items).map((item) => item.toLowerCase()));
+};
+
+const isValidIngredientValue = (value) => {
+    return Array.isArray(value) && value.length === 2 && Number.isFinite(Number(value[0])) && Number(value[0]) > 0 && String(value[1] ?? '').trim();
+};
+
+const normalizeIngredientObject = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    return Object.entries(value).reduce((accumulator, [name, amountAndUnit]) => {
+        const normalizedName = String(name ?? '').trim();
+        if (!normalizedName || !isValidIngredientValue(amountAndUnit)) {
+            return accumulator;
+        }
+
+        accumulator[normalizedName] = [Number(amountAndUnit[0]), String(amountAndUnit[1]).trim()];
+        return accumulator;
+    }, {});
+};
+
+const normalizeStepArray = (value, normalizedIngredients) => {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((step) => {
+            const instruction = String(step?.instruction ?? '').trim();
+            if (!instruction) {
+                return null;
+            }
+
+            const stepIngredients = normalizeIngredientObject(step?.ingredients);
+            const boundedIngredients = Object.keys(stepIngredients).reduce((accumulator, ingredientName) => {
+                if (normalizedIngredients[ingredientName]) {
+                    accumulator[ingredientName] = normalizedIngredients[ingredientName];
+                }
+                return accumulator;
+            }, {});
+
+            return {
+                instruction,
+                ingredients: boundedIngredients,
+            };
+        })
+        .filter(Boolean);
+};
+
 const normalizeFilters = (filters = {}) => {
     const searchTerm = String(filters.searchTerm ?? filters.search ?? '').trim();
     const tags = normalizeStringArray(filters.tags);
     const ingredients = normalizeStringArray(filters.ingredients);
+    const onboardingDietaryPreferences = normalizeStringArray(filters.onboardingDietaryPreferences);
+    const onboardingRecipeInterests = normalizeStringArray(filters.onboardingRecipeInterests);
+    const onboardingExcludedAllergies = normalizeStringArray(filters.onboardingExcludedAllergies);
 
     const sortField = SORT_FIELD_MAP[filters.sortField] ? filters.sortField : DEFAULT_SORT_FIELD;
     const sortDirection = String(filters.sortDirection ?? filters.sortOrder ?? DEFAULT_SORT_DIRECTION).toLowerCase() === 'asc'
@@ -51,6 +106,9 @@ const normalizeFilters = (filters = {}) => {
         searchTerm,
         tags,
         ingredients,
+        onboardingDietaryPreferences,
+        onboardingRecipeInterests,
+        onboardingExcludedAllergies,
         minTime: parseNumericFilter(filters.minTime ?? filters.timeMin),
         maxTime: parseNumericFilter(filters.maxTime ?? filters.timeMax),
         minServings: parseNumericFilter(filters.minServings),
@@ -161,10 +219,34 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
         }
     }
 
+    const onboardingTagSelections = [
+        ...filters.onboardingDietaryPreferences,
+        ...filters.onboardingRecipeInterests,
+    ];
+    if (onboardingTagSelections.length > 0) {
+        const recipeTagSet = normalizeLowercaseSet(recipe.tags);
+        const selectedOnboardingTagSet = normalizeLowercaseSet(onboardingTagSelections);
+        const hasAnyMatchingOnboardingTag = [...selectedOnboardingTagSet].some((tag) => recipeTagSet.has(tag));
+
+        if (!hasAnyMatchingOnboardingTag) {
+            return false;
+        }
+    }
+
     if (filters.ingredients.length > 0) {
         const recipeIngredientKeys = Object.keys(recipe.ingredients ?? {}).map((key) => key.toLowerCase());
         const hasAllIngredients = filters.ingredients.every((ingredient) => recipeIngredientKeys.includes(ingredient.toLowerCase()));
         if (!hasAllIngredients) {
+            return false;
+        }
+    }
+
+    if (filters.onboardingExcludedAllergies.length > 0) {
+        const recipeIngredientSet = normalizeLowercaseSet(Object.keys(recipe.ingredients ?? {}));
+        const excludedAllergySet = normalizeLowercaseSet(filters.onboardingExcludedAllergies);
+        const containsExcludedAllergy = [...excludedAllergySet].some((allergy) => recipeIngredientSet.has(allergy));
+
+        if (containsExcludedAllergy) {
             return false;
         }
     }
@@ -237,6 +319,79 @@ export const getRecipe = async (recipeId) => {
     const snap = await getDoc(recipeRef);
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() };
+};
+
+export const createRecipe = async (recipeData = {}) => {
+    const userId = String(recipeData.userId ?? '').trim();
+    const name = String(recipeData.name ?? '').trim();
+    const description = String(recipeData.description ?? '').trim();
+    const time = Number(recipeData.time);
+    const servings = Number(recipeData.servings);
+
+    const images = Array.isArray(recipeData.images)
+        ? recipeData.images.map((item) => String(item ?? '').trim()).filter(Boolean)
+        : [];
+    const tags = normalizeStringArray(recipeData.tags);
+    const ingredients = normalizeIngredientObject(recipeData.ingredients);
+    const steps = normalizeStepArray(recipeData.steps, ingredients);
+
+    if (!userId) {
+        throw new Error('Missing user ID.');
+    }
+    if (!name) {
+        throw new Error('Recipe name is required.');
+    }
+    if (!description) {
+        throw new Error('Recipe description is required.');
+    }
+    if (!Number.isFinite(time) || time <= 0) {
+        throw new Error('Cook time must be a positive number.');
+    }
+    if (!Number.isFinite(servings) || servings <= 0) {
+        throw new Error('Servings must be a positive number.');
+    }
+    if (images.length < 1) {
+        throw new Error('At least one media item is required.');
+    }
+    if (Object.keys(ingredients).length < 1) {
+        throw new Error('At least one valid ingredient is required.');
+    }
+    if (steps.length < 1) {
+        throw new Error('At least one step instruction is required.');
+    }
+
+    const recipesRef = collection(db, RECIPES_COLLECTION);
+    const recipeRef = doc(recipesRef);
+    const userRef = doc(db, 'users', userId);
+    const userRecipeRef = doc(db, 'users', userId, 'createdRecipes', recipeRef.id);
+    const batch = writeBatch(db);
+
+    batch.set(recipeRef, {
+        userId,
+        name,
+        description,
+        time,
+        servings,
+        images,
+        tags,
+        ingredients,
+        steps,
+        challengeId: recipeData.challengeId ?? null,
+        upvotes: 0,
+        saved: 0,
+        createdAt: serverTimestamp(),
+    });
+
+    batch.set(userRecipeRef, {
+        createdAt: serverTimestamp(),
+    });
+
+    batch.set(userRef, {
+        createdRecipes: arrayUnion(recipeRef.id),
+    }, { merge: true });
+
+    await batch.commit();
+    return { recipeId: recipeRef.id };
 };
 
 export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 10) => {
