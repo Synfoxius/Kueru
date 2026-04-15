@@ -1,5 +1,6 @@
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { createNotification } from './notificationService';
 
 const VOTES_COLLECTION = 'post_votes';
 
@@ -54,6 +55,16 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
     await updateDoc(targetRef, {
         [TARGET_FIELD[targetType]]: increment(pointDifference),
     });
+
+    // Notify on new upvotes only (not switches from downvote)
+    if (voteValue === 1 && !existingSnap.exists()) {
+        const targetSnap = await getDoc(targetRef);
+        const targetAuthorId = targetSnap.data()?.userId;
+        if (targetAuthorId) {
+            const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
+            await createNotification(targetAuthorId, userId, notifType, targetId);
+        }
+    }
 };
 
 /**

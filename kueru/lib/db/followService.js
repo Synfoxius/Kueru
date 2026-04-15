@@ -1,6 +1,7 @@
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
 import { getUser } from './userService';
+import { createNotification } from './notificationService';
 
 const FOLLOWS_COLLECTION = 'follows';
 
@@ -53,6 +54,7 @@ export const followUser = async (followerId, followingId) => {
     batch.update(doc(db, 'users', followingId), { followerCount: increment(1) });
     batch.update(doc(db, 'users', followerId), { followingCount: increment(1) });
     await batch.commit();
+    await createNotification(followingId, followerId, 'follow');
 };
 
 /**
