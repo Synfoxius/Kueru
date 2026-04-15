@@ -11,7 +11,7 @@ export async function GET(request) {
             adminDB.collection('users').count().get(),
             adminDB.collection('recipes').count().get(),
             adminDB.collection('forum_posts').count().get(),
-            adminDB.collection('chef_verifications')
+            adminDB.collection('verification_requests')
                 .where('status', 'in', ['pending', 'under_review'])
                 .count()
                 .get(),
