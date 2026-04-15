@@ -6,17 +6,17 @@ import { getRecipesByUser } from "@/lib/db/recipeService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-export default function RecipeSelector({ username, selectedRecipeId, onSelect }) {
+export default function RecipeSelector({ userId, selectedRecipeId, onSelect }) {
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId) ?? null;
 
     useEffect(() => {
-        if (!username) return;
-        getRecipesByUser(username)
+        if (!userId) { return; }
+        getRecipesByUser(userId)
             .then(({ recipes }) => setRecipes(recipes))
             .finally(() => setLoading(false));
-    }, []);
+    }, [userId]);
 
     return (
         <div className="flex flex-col gap-3">

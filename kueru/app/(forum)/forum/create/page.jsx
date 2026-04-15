@@ -23,7 +23,7 @@ const MAX_TITLE_LENGTH = 300;
 
 export default function CreatePostPage() {
     const router = useRouter();
-    const { user, userDoc, loading } = useAuth();
+    const { user, loading } = useAuth();
     const [title, setTitle] = useState("");
     const [bodyText, setBodyText] = useState("");
     const [mediaURLs, setMediaURLs] = useState([]);
@@ -195,7 +195,7 @@ export default function CreatePostPage() {
                     subtitle="Attach one of your recipes"
                 >
                     <RecipeSelector
-                        username={userDoc?.username}
+                        userId={user.uid}
                         selectedRecipeId={selectedRecipeId}
                         onSelect={setSelectedRecipeId}
                     />
