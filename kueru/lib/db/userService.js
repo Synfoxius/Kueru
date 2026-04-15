@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp, documentId } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 const RECIPES_COLLECTION = 'recipes';
@@ -140,8 +140,115 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
             _savedMetadata: referenceDoc.data()
         };
     });
-    
+
     const recipes = await Promise.all(recipePromises);
-    
+
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
+};
+
+    const chunkArray = (items, size) => {
+        const chunks = [];
+        for (let index = 0; index < items.length; index += size) {
+            chunks.push(items.slice(index, index + size));
+        }
+        return chunks;
+    };
+
+    export const getCertifiedChefs = async (lastDoc = null, limitCount = 5) => {
+        const usersRef = collection(db, USERS_COLLECTION);
+
+        const queryConstraints = [
+            where('verified', '==', true),
+            orderBy('followerCount', 'desc'),
+            limit(limitCount),
+        ];
+
+        if (lastDoc) {
+            queryConstraints.push(startAfter(lastDoc));
+        }
+
+        const q = query(usersRef, ...queryConstraints);
+        const snap = await getDocs(q);
+
+        return {
+            users: snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() })),
+            lastDoc: snap.docs[snap.docs.length - 1],
+        };
+    };
+
+    export const getPopularUsers = async (lastDoc = null, limitCount = 5) => {
+        const usersRef = collection(db, USERS_COLLECTION);
+
+        const queryConstraints = [
+            orderBy('followerCount', 'desc'),
+            limit(limitCount),
+        ];
+
+        if (lastDoc) {
+            queryConstraints.push(startAfter(lastDoc));
+        }
+
+        const q = query(usersRef, ...queryConstraints);
+        const snap = await getDocs(q);
+
+        return {
+            users: snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() })),
+            lastDoc: snap.docs[snap.docs.length - 1],
+        };
+    };
+
+    export const getUsersByIds = async (userIds = []) => {
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            return new Map();
+        }
+
+        const uniqueIds = [...new Set(userIds.filter(Boolean))];
+        if (uniqueIds.length === 0) {
+            return new Map();
+        }
+
+        const usersRef = collection(db, USERS_COLLECTION);
+        const usersById = new Map();
+
+        const idBatches = chunkArray(uniqueIds, 10);
+        const snapshots = await Promise.all(
+            idBatches.map((batch) => {
+                const q = query(usersRef, where(documentId(), 'in', batch));
+                return getDocs(q);
+            })
+        );
+
+        snapshots.forEach((snap) => {
+            snap.docs.forEach((userDoc) => {
+                usersById.set(userDoc.id, { id: userDoc.id, ...userDoc.data() });
+            });
+        });
+
+        return usersById;
+    };
+/**
+ * Search users by username prefix, optionally filtered by role.
+ * @param {string} searchTerm
+ * @param {'all'|'chef'|'customer'} role
+ * @param {number} limitCount
+ */
+export const searchUsers = async (searchTerm = '', role = 'all', limitCount = 20) => {
+    if (!searchTerm.trim()) return [];
+
+    const usersRef = collection(db, USERS_COLLECTION);
+    const term = searchTerm.toLowerCase();
+    const constraints = [
+        where('onboardingComplete', '==', true),
+        where('username', '>=', term),
+        where('username', '<=', term + '\uf8ff'),
+        limit(limitCount),
+    ];
+
+    if (role !== 'all') {
+        constraints.push(where('role', '==', role === 'chef' ? 'chef' : 'customer'));
+    }
+
+    const q = query(usersRef, ...constraints);
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };

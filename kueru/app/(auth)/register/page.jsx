@@ -24,11 +24,11 @@ const FIREBASE_ERRORS = {
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, onboardingComplete, loading: authLoading } = useAuth();
 
     useEffect(() => {
-        if (!authLoading && user) router.replace("/profile");
-    }, [user, authLoading, router]);
+        if (!authLoading && user && onboardingComplete) router.replace("/profile");
+    }, [user, onboardingComplete, authLoading, router]);
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -110,6 +110,7 @@ export default function RegisterPage() {
 
     return (
         <>
+        <title>Sign Up | Kueru</title>
         <ConditionalNavbar />
         <div className="flex flex-col md:flex-row" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
 
