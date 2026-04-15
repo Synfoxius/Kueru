@@ -102,7 +102,7 @@ export default function ProfilePage() {
     return (
         <>
             <ConditionalNavbar />
-                <main className="mx-auto max-w-6xl px-4 py-8">
+                <main className="w-full px-8 sm:px-12 lg:px-20 py-8">
 
                 {/* Profile header */}
                 <div className="flex items-center gap-8">
@@ -125,8 +125,12 @@ export default function ProfilePage() {
                         {/* Stats */}
                         <div className="flex gap-8 text-sm">
                             <span><strong className="text-base">{recipes.length}</strong> <span className="text-muted-foreground">recipes</span></span>
-                            <span><strong className="text-base">{profileUser.followerCount ?? 0}</strong> <span className="text-muted-foreground">followers</span></span>
-                            <span><strong className="text-base">{profileUser.followingCount ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
+                            <Link href={`/profile/${profileUser.username}/connections?tab=followers`} className="hover:underline">
+                                <strong className="text-base">{profileUser.followerCount ?? 0}</strong> <span className="text-muted-foreground">followers</span>
+                            </Link>
+                            <Link href={`/profile/${profileUser.username}/connections?tab=following`} className="hover:underline">
+                                <strong className="text-base">{profileUser.followingCount ?? 0}</strong> <span className="text-muted-foreground">following</span>
+                            </Link>
                         </div>
 
                         {/* Display name + Bio */}
@@ -209,7 +213,7 @@ export default function ProfilePage() {
                     </DialogHeader>
                     <div className="flex flex-col gap-2 mt-2">
                         <Button asChild className="w-full" onClick={() => setShowLoginModal(false)}>
-                            <Link href="/login">Log In</Link>
+                            <Link href={`/login?returnTo=/profile/${profileUser?.username}`}>Log In</Link>
                         </Button>
                         <Button asChild variant="outline" className="w-full" onClick={() => setShowLoginModal(false)}>
                             <Link href="/register">Sign Up</Link>

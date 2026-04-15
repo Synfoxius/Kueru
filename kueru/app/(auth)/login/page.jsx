@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,15 +17,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function LoginPage() {
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const returnTo = searchParams.get("returnTo");
     const { user, onboardingComplete, loading: authLoading } = useAuth();
 
     useEffect(() => {
         if (authLoading || !user) return;
-        if (onboardingComplete) router.replace("/profile");
+        if (onboardingComplete) router.replace(returnTo || "/profile");
         else if (onboardingComplete === false || onboardingComplete === null) router.replace("/onboarding");
-    }, [user, onboardingComplete, authLoading, router]);
+    }, [user, onboardingComplete, authLoading, router, returnTo]);
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +46,7 @@ export default function LoginPage() {
             if (!userDoc || !userDoc.onboardingComplete) {
                 router.push("/onboarding");
             } else {
-                router.push("/profile");
+                router.push(returnTo || "/profile");
             }
         } catch (err) {
             setError("Invalid email or password. Please try again.");
@@ -60,7 +63,7 @@ export default function LoginPage() {
             if (!existingDoc) {
                 router.push("/onboarding?google=1");
             } else if (existingDoc.onboardingComplete) {
-                router.push("/profile");
+                router.push(returnTo || "/profile");
             } else {
                 router.push("/onboarding");
             }
@@ -201,5 +204,13 @@ export default function LoginPage() {
             </div>
         </div>
         </>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={null}>
+            <LoginForm />
+        </Suspense>
     );
 }
