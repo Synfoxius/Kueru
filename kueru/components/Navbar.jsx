@@ -193,7 +193,7 @@ export default function Navbar() {
                                 <DropdownMenuItem asChild>
                                     <Link href="/settings" className="cursor-pointer gap-2">
                                         <IconSettings className="size-4" />
-                                        Settings &amp; Activities
+                                        Account Settings
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
