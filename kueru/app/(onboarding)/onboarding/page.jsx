@@ -47,9 +47,9 @@ const SKILL_OPTIONS = [
 
 const INTEREST_OPTIONS = [
     "Italian", "Mexican", "Japanese", "Chinese", "Indian", "Thai",
-    "French", "Mediterranean", "Korean", "Vietnamese", "American",
+    "French", "Korean", "Vietnamese", "American",
     "Middle Eastern", "Spanish", "Greek", "Vegetarian", "Vegan",
-    "Desserts", "Baking", "BBQ & Grilling", "Seafood",
+    "Muslim", "Seafood",
 ];
 
 // ─── Reusable toggle pill ─────────────────────────────────────────────────────
