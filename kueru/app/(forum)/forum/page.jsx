@@ -55,6 +55,10 @@ export default function ForumPage() {
             .finally(() => setLoading(false));
     }, []);
 
+    const handlePostDeleted = (postId) => {
+        setAllPosts((prev) => prev.filter((post) => post.id !== postId));
+    };
+
     const handleLoadMore = async () => {
         if (!lastDoc || loadingMore) return;
         setLoadingMore(true);
@@ -161,7 +165,7 @@ export default function ForumPage() {
                     ) : (
                         <div className="flex flex-col gap-3">
                             {displayedPosts.map((post) => (
-                                <PostCard key={post.id} post={post} />
+                                <PostCard key={post.id} post={post} onDeleted={handlePostDeleted} />
                             ))}
                             {hasMore && !search && selectedCategories.length === 0 && (
                                 <Button
