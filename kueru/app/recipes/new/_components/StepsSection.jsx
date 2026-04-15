@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
@@ -40,13 +39,16 @@ export default function StepsSection({
                                         {availableIngredients.map((ingredientName) => {
                                             const isChecked = step.ingredientNames.includes(ingredientName);
                                             return (
-                                                <label key={`${step.id}-${ingredientName}`} className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-input px-2 py-1 text-xs text-foreground">
-                                                    <Checkbox
-                                                        checked={isChecked}
-                                                        onCheckedChange={() => onToggleStepIngredient(index, ingredientName)}
-                                                    />
-                                                    <span>{ingredientName}</span>
-                                                </label>
+                                                <Button
+                                                    key={`${step.id}-${ingredientName}`}
+                                                    type="button"
+                                                    size="sm"
+                                                    variant={isChecked ? "default" : "outline"}
+                                                    className="h-7 rounded-full px-3"
+                                                    onClick={() => onToggleStepIngredient(index, ingredientName)}
+                                                >
+                                                    {ingredientName}
+                                                </Button>
                                             );
                                         })}
                                     </div>

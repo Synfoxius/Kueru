@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { IconClock, IconUsers, IconArrowBigUp } from "@tabler/icons-react";
 
@@ -14,7 +14,7 @@ export default function DiscoverRecipeCard({ recipe }) {
             <div className="relative h-44 w-full">
                 <Image src={imageUrl} alt={recipe?.name || "Recipe"} fill className="object-cover" sizes="300px" />
             </div>
-            <CardContent className="space-y-2 p-4">
+            <CardContent className="space-y-2 px-4 pt-4 pb-0">
                 <div>
                     <p className="line-clamp-1 text-base font-semibold text-foreground">{recipe?.name || "Untitled Recipe"}</p>
                     <p className="line-clamp-1 text-sm text-muted-foreground">by {recipe?.username || "Unknown"}</p>
@@ -33,12 +33,10 @@ export default function DiscoverRecipeCard({ recipe }) {
                         {formatCount(recipe?.upvotes)} upvotes
                     </span>
                 </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0">
                 <Button asChild className="w-full">
-                    <Link href={`/recipes/find?recipeId=${recipe?.id || ""}`}>View Recipe</Link>
+                    <Link href={`/recipes/${recipe?.id || ""}`}>View Recipe</Link>
                 </Button>
-            </CardFooter>
+            </CardContent>
         </Card>
     );
 }
