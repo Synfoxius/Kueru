@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { adminFetch } from "@/lib/api/adminFetch";
 import DataTable from "../../_components/DataTable";
 import ConfirmDialog from "../../_components/ConfirmDialog";
@@ -49,6 +50,7 @@ const columns = [
 ];
 
 export default function UsersPage() {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -93,11 +95,13 @@ export default function UsersPage() {
         }
     };
 
-    const renderActions = (row) => (
+    const renderActions = (row) => {
+        const isSelf = row.userId === currentUser?.uid;
+        return (
         <div className="flex items-center justify-end gap-2">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1">
+                    <Button variant="outline" size="sm" className="gap-1" disabled={isSelf}>
                         Role <IconChevronDown className="size-3" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -118,11 +122,13 @@ export default function UsersPage() {
                 size="sm"
                 className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setDeleteTarget(row)}
+                disabled={isSelf}
             >
                 <IconTrash className="size-4" />
             </Button>
         </div>
-    );
+        );
+    };
 
     return (
         <div className="p-6">
