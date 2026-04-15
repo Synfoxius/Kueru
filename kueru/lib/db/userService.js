@@ -146,7 +146,6 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
-<<<<<<< HEAD
     const chunkArray = (items, size) => {
         const chunks = [];
         for (let index = 0; index < items.length; index += size) {
@@ -227,7 +226,6 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
 
         return usersById;
     };
-=======
 /**
  * Search users by username prefix, optionally filtered by role.
  * @param {string} searchTerm
@@ -254,4 +252,3 @@ export const searchUsers = async (searchTerm = '', role = 'all', limitCount = 20
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
->>>>>>> origin/feature/profile
