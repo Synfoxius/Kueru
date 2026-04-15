@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { IconCamera, IconUpload, IconShieldCheck } from "@tabler/icons-react";
+import { IconCamera, IconUpload, IconShieldCheck, IconCircleCheck, IconArrowLeft } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { updateUser, getUserByUsername } from "@/lib/db/userService";
@@ -30,6 +30,7 @@ export default function EditProfilePage() {
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
     const [error, setError] = useState("");
     const [verificationPending, setVerificationPending] = useState(false);
 
@@ -81,7 +82,7 @@ export default function EditProfilePage() {
             }
 
             await updateUser(user.uid, { displayName, username, bio, profileImage });
-            router.push(`/profile/${username}`);
+            setSaved(true);
         } catch {
             setError("Failed to save changes. Please try again.");
         } finally {
@@ -108,7 +109,15 @@ export default function EditProfilePage() {
 
                 {/* Page heading */}
                 <div>
-                    <h1 className="text-2xl font-bold">Edit Profile</h1>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold">Edit Profile</h1>
+                        <button
+                            onClick={() => router.back()}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <IconArrowLeft className="size-4" /> Back
+                        </button>
+                    </div>
                     <p className="text-sm text-muted-foreground mt-1">Update your profile information and settings</p>
                 </div>
 
@@ -236,9 +245,12 @@ export default function EditProfilePage() {
                     )}
                 </div>
 
-                {/* Error */}
-                {error && (
-                    <p className="text-sm text-destructive">{error}</p>
+                {/* Error / Success */}
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                {saved && (
+                    <p className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                        <IconCircleCheck className="size-4" /> Profile saved successfully
+                    </p>
                 )}
 
                 {/* Actions */}
@@ -252,7 +264,7 @@ export default function EditProfilePage() {
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={() => router.push("/profile")}
+                        onClick={() => router.back()}
                         disabled={saving}
                     >
                         Cancel

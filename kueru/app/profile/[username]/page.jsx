@@ -43,7 +43,7 @@ export default function ProfilePage() {
 
             setProfileUser(user);
 
-            const recipesData = await getRecipesByUser(username).catch(() => ({ recipes: [] }));
+            const recipesData = await getRecipesByUser(user.userId).catch(() => ({ recipes: [] }));
             setRecipes(recipesData.recipes ?? []);
 
             if (currentUser && currentUser.uid !== user.userId) {
@@ -199,7 +199,7 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="forums">
-                        <UserPosts userId={profileUser.userId} />
+                        <UserPosts userId={profileUser.userId} savedPostsId={profileUser.savedPosts} />
                     </TabsContent>
                 </Tabs>
             </main>

@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, serverTimestamp, documentId } from 'firebase/firestore';
 
 const FORUM_COLLECTION = 'forum_posts';
 
@@ -78,6 +78,20 @@ export const updatePost = async (postId, content) => {
         content,
         editedDateTime: serverTimestamp(),
     });
+};
+
+export const getPostsByIds = async (postIds) => {
+    if (!postIds?.length) { return []; }
+    const chunks = [];
+    for (let i = 0; i < postIds.length; i += 30) {
+        chunks.push(postIds.slice(i, i + 30));
+    }
+    const results = await Promise.all(
+        chunks.map((chunk) =>
+            getDocs(query(collection(db, FORUM_COLLECTION), where(documentId(), "in", chunk)))
+        )
+    );
+    return results.flatMap((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 };
 
 export const createPost = async (postData) => {
