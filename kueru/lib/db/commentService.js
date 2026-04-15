@@ -1,5 +1,6 @@
 import { db } from '../firebase/config';
 import { collection, doc, getDoc, query, where, orderBy, getDocs, addDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { createNotification } from './notificationService';
 
 const COMMENTS_COLLECTION = 'comments';
 
@@ -35,6 +36,14 @@ export const createComment = async (postId, userId, content, parentCommentId = n
     await updateDoc(doc(db, 'forum_posts', postId), {
         commentsCount: increment(1),
     });
+
+    // Notify the post author
+    const postSnap = await getDoc(doc(db, 'forum_posts', postId));
+    const postAuthorId = postSnap.data()?.userId;
+    if (postAuthorId) {
+        await createNotification(postAuthorId, userId, 'comment', postId);
+    }
+
     return commentRef.id;
 };
 

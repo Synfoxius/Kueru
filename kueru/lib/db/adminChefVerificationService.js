@@ -88,7 +88,20 @@ export const updateVerificationStatus = async (verificationId, status, reviewerI
         // If approved, promote the user to chef and mark as verified
         if (status === 'approved') {
             const userRef = adminDB.collection(USERS_COLLECTION).doc(userId);
-            transaction.update(userRef, { role: 'chef', verified: true });
+            transaction.update(userRef, { role: 'chef' });
+        }
+
+        // Notify the user of the verification outcome
+        if (status === 'approved' || status === 'rejected') {
+            const notifRef = adminDB.collection('notifications').doc();
+            transaction.set(notifRef, {
+                recipientId: userId,
+                senderId: null,
+                type: status === 'approved' ? 'verification_approved' : 'verification_rejected',
+                targetId: verificationId,
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
         }
     });
 };

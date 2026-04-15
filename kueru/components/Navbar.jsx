@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { useAuth } from "@/context/AuthContext";
+import { subscribeUnreadCount } from "@/lib/db/notificationService";
 
 import {
     NavigationMenu,
@@ -24,7 +26,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup } from "@tabler/icons-react";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup, IconBell } from "@tabler/icons-react";
 
 /**
  * Extracts up to two initials from a username string.
@@ -51,6 +53,13 @@ export default function Navbar() {
     const { user, userDoc } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!user) { setUnreadCount(0); return; }
+        const unsub = subscribeUnreadCount(user.uid, setUnreadCount);
+        return unsub;
+    }, [user]);
 
     const isRecipeActive = pathname.startsWith("/recipes");
     const isAchievementsActive = pathname.startsWith("/achievements");
@@ -134,7 +143,22 @@ export default function Navbar() {
                     </NavigationMenu>
                 </div>
 
-                {/* Right section: Profile avatar */}
+                {/* Right section: Bell + Profile avatar */}
+                <div className="flex items-center gap-3">
+                {user && (
+                    <Link
+                        href="/users/notifications"
+                        className="relative rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        aria-label="Notifications"
+                    >
+                        <IconBell className="size-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white leading-none">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </Link>
+                )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button
@@ -169,7 +193,7 @@ export default function Navbar() {
                                 <DropdownMenuItem asChild>
                                     <Link href="/settings" className="cursor-pointer gap-2">
                                         <IconSettings className="size-4" />
-                                        Settings &amp; Activities
+                                        Account Settings
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -191,6 +215,7 @@ export default function Navbar() {
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
+                </div>
             </div>
         </nav>
     );
