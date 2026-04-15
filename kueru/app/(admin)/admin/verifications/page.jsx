@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/api/adminFetch";
-import ConfirmDialog from "../../_components/ConfirmDialog";
+import DataTable from "../../_components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { IconCheck, IconClock, IconX } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 
 const STATUS_VARIANT = {
     pending: "outline",
@@ -18,11 +15,13 @@ const STATUS_VARIANT = {
     rejected: "destructive",
 };
 
-const ACTION_LABELS = {
-    approved: "Approve Verification",
-    rejected: "Reject Verification",
-    under_review: "Mark as Under Review",
-};
+const FILTERS = [
+    { value: "all",          label: "All" },
+    { value: "pending",      label: "Pending" },
+    { value: "under_review", label: "Under Review" },
+    { value: "approved",     label: "Approved" },
+    { value: "rejected",     label: "Rejected" },
+];
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -30,13 +29,35 @@ function formatDate(ts) {
     return seconds ? new Date(seconds * 1000).toLocaleDateString() : "—";
 }
 
+const columns = [
+    {
+        key: "userId",
+        label: "User ID",
+        render: (row) => (
+            <span className="font-mono text-xs">{row.userId}</span>
+        ),
+    },
+    {
+        key: "submittedAt",
+        label: "Submitted",
+        render: (row) => formatDate(row.submittedAt),
+    },
+    {
+        key: "status",
+        label: "Status",
+        render: (row) => (
+            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
+                {row.status.replace("_", " ")}
+            </Badge>
+        ),
+    },
+];
+
 export default function VerificationsPage() {
+    const router = useRouter();
     const [verifications, setVerifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    // actionTarget: { verification, action: 'approved'|'rejected'|'under_review' }
-    const [actionTarget, setActionTarget] = useState(null);
-    const [note, setNote] = useState("");
-    const [actionLoading, setActionLoading] = useState(false);
+    const [activeFilter, setActiveFilter] = useState("all");
 
     const fetchVerifications = useCallback(async () => {
         setLoading(true);
@@ -53,196 +74,73 @@ export default function VerificationsPage() {
         fetchVerifications();
     }, [fetchVerifications]);
 
-    const openAction = (verification, action) => {
-        setNote("");
-        setActionTarget({ verification, action });
-    };
+    // Per-status counts for filter labels
+    const counts = useMemo(() => {
+        const c = { all: verifications.length, pending: 0, under_review: 0, approved: 0, rejected: 0 };
+        verifications.forEach((v) => { if (v.status in c) c[v.status]++; });
+        return c;
+    }, [verifications]);
 
-    const handleAction = async () => {
-        if (!actionTarget) return;
-        setActionLoading(true);
-        try {
-            await adminFetch(
-                `/api/admin/verifications/${actionTarget.verification.verificationId}`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify({ status: actionTarget.action, note }),
-                }
-            );
-            // Remove from list after any action (all result in a status change)
-            setVerifications((prev) =>
-                prev.filter(
-                    (v) =>
-                        v.verificationId !==
-                        actionTarget.verification.verificationId
-                )
-            );
-            setActionTarget(null);
-        } finally {
-            setActionLoading(false);
-        }
-    };
+    // Client-side filter
+    const filtered = useMemo(
+        () =>
+            activeFilter === "all"
+                ? verifications
+                : verifications.filter((v) => v.status === activeFilter),
+        [verifications, activeFilter]
+    );
 
-    if (loading) {
-        return (
-            <div className="p-6">
-                <h1 className="mb-6 text-2xl font-bold">Chef Verifications</h1>
-                <p className="text-sm text-muted-foreground">Loading...</p>
-            </div>
-        );
-    }
+    // DataTable expects row.id; verifications use verificationId
+    const tableData = useMemo(
+        () => filtered.map((v) => ({ ...v, id: v.verificationId })),
+        [filtered]
+    );
+
+    const renderActions = (row) => (
+        <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/admin/verifications/${row.verificationId}`)}
+        >
+            View
+        </Button>
+    );
 
     return (
         <div className="p-6">
             <h1 className="mb-1 text-2xl font-bold">Chef Verifications</h1>
             <p className="mb-6 text-sm text-muted-foreground">
-                {verifications.length} pending review
+                {verifications.length} total request{verifications.length !== 1 ? "s" : ""}
             </p>
 
-            {verifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    No pending verifications.
-                </p>
-            ) : (
-                <div className="grid gap-4">
-                    {verifications.map((v) => (
-                        <Card key={v.verificationId}>
-                            <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p className="text-sm font-semibold">
-                                            User ID:{" "}
-                                            <span className="font-mono text-xs">
-                                                {v.userId}
-                                            </span>
-                                        </p>
-                                        <p className="mt-0.5 text-xs text-muted-foreground">
-                                            Submitted: {formatDate(v.submittedAt)}
-                                        </p>
-                                    </div>
-                                    <Badge
-                                        variant={
-                                            STATUS_VARIANT[v.status] ?? "outline"
-                                        }
-                                    >
-                                        {v.status}
-                                    </Badge>
-                                </div>
-                            </CardHeader>
+            {/* Status filter */}
+            <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
+                {FILTERS.map((f) => (
+                    <button
+                        key={f.value}
+                        onClick={() => setActiveFilter(f.value)}
+                        className={cn(
+                            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                            activeFilter === f.value
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        {f.label}
+                        <span className="ml-1.5 text-xs opacity-60">
+                            {counts[f.value]}
+                        </span>
+                    </button>
+                ))}
+            </div>
 
-                            <CardContent className="space-y-3">
-                                {/* Uploaded documents */}
-                                <div>
-                                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                                        Documents ({v.documents?.length ?? 0})
-                                    </p>
-                                    {v.documents?.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                            {v.documents.map((docItem, i) => (
-                                                <a
-                                                    key={i}
-                                                    href={docItem.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:underline"
-                                                >
-                                                    {docItem.type}:{" "}
-                                                    {docItem.filename}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-muted-foreground">
-                                            No documents uploaded.
-                                        </p>
-                                    )}
-                                </div>
-
-                                <Separator />
-
-                                {/* Action buttons */}
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        size="sm"
-                                        onClick={() =>
-                                            openAction(v, "approved")
-                                        }
-                                        className="gap-1.5"
-                                    >
-                                        <IconCheck className="size-3.5" />
-                                        Approve
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                            openAction(v, "under_review")
-                                        }
-                                        className="gap-1.5"
-                                    >
-                                        <IconClock className="size-3.5" />
-                                        Under Review
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() =>
-                                            openAction(v, "rejected")
-                                        }
-                                        className="gap-1.5"
-                                    >
-                                        <IconX className="size-3.5" />
-                                        Reject
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
-
-            {/* Action confirmation dialog */}
-            <ConfirmDialog
-                open={!!actionTarget}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setActionTarget(null);
-                        setNote("");
-                    }
-                }}
-                title={ACTION_LABELS[actionTarget?.action] ?? "Confirm Action"}
-                description={
-                    actionTarget?.action === "rejected"
-                        ? "Please provide a rejection reason that will be shared with the applicant."
-                        : "Optionally add an internal note for this action."
-                }
-                confirmLabel="Confirm"
-                onConfirm={handleAction}
-                loading={actionLoading}
-                variant={
-                    actionTarget?.action === "rejected"
-                        ? "destructive"
-                        : "default"
-                }
-            >
-                <div className="space-y-1.5">
-                    <Label htmlFor="action-note">
-                        {actionTarget?.action === "rejected"
-                            ? "Rejection Reason"
-                            : "Note (optional)"}
-                    </Label>
-                    <Input
-                        id="action-note"
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder={
-                            actionTarget?.action === "rejected"
-                                ? "Enter rejection reason…"
-                                : "Internal note…"
-                        }
-                    />
-                </div>
-            </ConfirmDialog>
+            <DataTable
+                columns={columns}
+                data={tableData}
+                loading={loading}
+                renderActions={renderActions}
+                emptyMessage="No verification requests found."
+            />
         </div>
     );
 }

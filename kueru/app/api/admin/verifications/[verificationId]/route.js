@@ -1,8 +1,30 @@
 import { verifyAdminRequest } from '@/lib/api/adminAuthMiddleware';
-import { updateVerificationStatus } from '@/lib/db/adminChefVerificationService';
+import {
+    getChefVerification,
+    updateVerificationStatus,
+} from '@/lib/db/adminChefVerificationService';
 import { NextResponse } from 'next/server';
 
 const VALID_STATUSES = ['approved', 'rejected', 'under_review'];
+
+export async function GET(request, { params }) {
+    const { uid, error } = await verifyAdminRequest(request);
+    if (error) return error;
+
+    try {
+        const { verificationId } = await params;
+        const verification = await getChefVerification(verificationId);
+
+        if (!verification) {
+            return NextResponse.json({ error: 'Verification not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ verification });
+    } catch (err) {
+        console.error('[admin/verifications GET single]', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
 
 export async function PATCH(request, { params }) {
     const { uid, error } = await verifyAdminRequest(request);
