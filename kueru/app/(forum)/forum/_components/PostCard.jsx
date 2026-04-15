@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { getUser } from "@/lib/db/userService";
+import { getUser, hidePost, unhidePost, savePost, unsavePost } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
 import { deletePost } from "@/lib/db/forumService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 function timeAgo(timestamp) {
@@ -24,13 +24,14 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function PostCard({ post, onDeleted }) {
+export default function PostCard({ post, onDeleted, isHidden = false, onHidden, onUnhidden }) {
     const { user } = useAuth();
     const router = useRouter();
     const [username, setUsername] = useState(null);
     const [voteCount, setVoteCount] = useState(post.upvotesCount);
     const [userVote, setUserVote] = useState(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     const handleDelete = async () => {
         await deletePost(post.id);
@@ -41,6 +42,14 @@ export default function PostCard({ post, onDeleted }) {
     useEffect(() => {
         if (user) {
             getUserVoteOnTarget(user.uid, post.id).then(setUserVote);
+        }
+    }, [user, post.id]);
+
+    useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                setIsSaved(u?.savedPosts?.includes(post.id) ?? false);
+            });
         }
     }, [user, post.id]);
 
@@ -72,6 +81,38 @@ export default function PostCard({ post, onDeleted }) {
     const displayTags = postType === "Discussion"
         ? (post.postCategory ? [post.postCategory] : [])
         : (post.tags ?? []);
+
+    const handleSave = async () => {
+        if (!user) { return; }
+        if (isSaved) {
+            await unsavePost(user.uid, post.id);
+            setIsSaved(false);
+        } else {
+            await savePost(user.uid, post.id);
+            setIsSaved(true);
+        }
+    };
+
+    const handleHide = async () => {
+        if (user) { await hidePost(user.uid, post.id); }
+        if (onHidden) { onHidden(post.id); }
+    };
+
+    const handleUnhide = async () => {
+        if (user) { await unhidePost(user.uid, post.id); }
+        if (onUnhidden) { onUnhidden(post.id); }
+    };
+
+    if (isHidden) {
+        return (
+            <Card className="w-full bg-white py-0">
+                <CardContent className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground">
+                    <span>Post hidden.</span>
+                    <button onClick={handleUnhide} className="text-primary hover:underline text-xs">Undo</button>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="w-full bg-white py-0 relative">
@@ -194,10 +235,16 @@ export default function PostCard({ post, onDeleted }) {
                             </DropdownMenuItem>
                         </>
                     )}
+                    {user && (
+                        <DropdownMenuItem className="gap-2" onClick={handleSave}>
+                            {isSaved ? <IconBookmarkFilled className="size-4" /> : <IconBookmark className="size-4" />}
+                            {isSaved ? "Unsave" : "Save"}
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="gap-2">
                         <IconFlag className="size-4" /> Report
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2" onClick={handleHide}>
                         <IconEyeOff className="size-4" /> Hide
                     </DropdownMenuItem>
                 </DropdownMenuContent>

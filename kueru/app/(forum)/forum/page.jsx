@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import { getRecentPosts } from "@/lib/db/forumService";
+import { getUser } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -30,7 +32,9 @@ const SORT_OPTIONS = ["Most Popular", "Newest", "Most Comments"];
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function ForumPage() {
-    const [allPosts, setAllPosts] = useState([]);
+    const { user } = useAuth();
+    const [hiddenPostIds, setHiddenPostIds] = useState([]);
+    const [allPosts, setAllPosts]= useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -42,6 +46,14 @@ export default function ForumPage() {
     const [selectedCategories, setSelectedCategories] = useState([]);
 
     const LIMIT = 15;
+
+    useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                if (u?.hiddenPosts) { setHiddenPostIds(u.hiddenPosts); }
+            });
+        }
+    }, [user]);
 
     useEffect(() => {
         getRecentPosts()
@@ -77,6 +89,14 @@ export default function ForumPage() {
         [...allPosts]
         .sort((a, b) => (b.upvotesCount ?? 0) - (a.upvotesCount ?? 0))
         .slice(0, 5);
+
+    const handlePostHidden = (postId) => {
+        setHiddenPostIds((prev) => [...prev, postId]);
+    };
+
+    const handlePostUnhidden = (postId) => {
+        setHiddenPostIds((prev) => prev.filter((id) => id !== postId));
+    };
 
     const displayedPosts = [...allPosts]
         .filter(post => {
@@ -165,7 +185,14 @@ export default function ForumPage() {
                     ) : (
                         <div className="flex flex-col gap-3">
                             {displayedPosts.map((post) => (
-                                <PostCard key={post.id} post={post} onDeleted={handlePostDeleted} />
+                                <PostCard
+                                    key={post.id}
+                                    post={post}
+                                    onDeleted={handlePostDeleted}
+                                    isHidden={hiddenPostIds.includes(post.id)}
+                                    onHidden={handlePostHidden}
+                                    onUnhidden={handlePostUnhidden}
+                                />
                             ))}
                             {hasMore && !search && selectedCategories.length === 0 && (
                                 <Button
