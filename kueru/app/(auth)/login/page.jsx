@@ -19,11 +19,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, onboardingComplete, loading: authLoading } = useAuth();
 
     useEffect(() => {
-        if (!authLoading && user) router.replace("/profile");
-    }, [user, authLoading, router]);
+        if (authLoading || !user) return;
+        if (onboardingComplete) router.replace("/profile");
+        else if (onboardingComplete === false || onboardingComplete === null) router.replace("/onboarding");
+    }, [user, onboardingComplete, authLoading, router]);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -36,8 +38,13 @@ export default function LoginPage() {
         setError("");
         setLoading(true);
         try {
-            await loginWithEmail(email, password);
-            router.push("/profile");
+            const { user: loggedInUser } = await loginWithEmail(email, password);
+            const userDoc = await getUser(loggedInUser.uid);
+            if (!userDoc || !userDoc.onboardingComplete) {
+                router.push("/onboarding");
+            } else {
+                router.push("/profile");
+            }
         } catch (err) {
             setError("Invalid email or password. Please try again.");
         } finally {

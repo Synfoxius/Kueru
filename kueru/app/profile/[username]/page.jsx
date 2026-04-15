@@ -9,8 +9,10 @@ import { getUserByUsername } from "@/lib/db/userService";
 import { getRecipesByUser } from "@/lib/db/recipeService";
 import { checkIfFollowing, followUser, unfollowUser } from "@/lib/db/followService";
 
-import Navbar from "@/components/Navbar";
+import Link from "next/link";
+import ConditionalNavbar from "@/components/ConditionalNavbar";
 import RecipeCard from "@/components/RecipeCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -29,10 +31,10 @@ export default function ProfilePage() {
     const [pageLoading, setPageLoading] = useState(true);
     const [followLoading, setFollowLoading] = useState(false);
     const [notFound, setNotFound] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
         if (authLoading) return;
-        if (!currentUser) { router.replace("/login"); return; }
 
         const fetchProfile = async () => {
             setPageLoading(true);
@@ -78,7 +80,7 @@ export default function ProfilePage() {
     if (authLoading || pageLoading) {
         return (
             <>
-                <Navbar />
+                <ConditionalNavbar />
                 <div className="flex h-[60vh] items-center justify-center text-muted-foreground text-sm">
                     Loading...
                 </div>
@@ -89,7 +91,7 @@ export default function ProfilePage() {
     if (notFound) {
         return (
             <>
-                <Navbar />
+                <ConditionalNavbar />
                 <div className="flex h-[60vh] items-center justify-center text-muted-foreground text-sm">
                     User not found.
                 </div>
@@ -99,7 +101,7 @@ export default function ProfilePage() {
 
     return (
         <>
-            <Navbar />
+            <ConditionalNavbar />
                 <main className="mx-auto max-w-6xl px-4 py-8">
 
                 {/* Profile header */}
@@ -143,6 +145,10 @@ export default function ProfilePage() {
                     {isOwnProfile ? (
                         <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => router.push("/profile/edit")}>
                             <IconEdit className="size-4" /> Edit Profile
+                        </Button>
+                    ) : !currentUser ? (
+                        <Button size="sm" className="gap-1.5 w-full" onClick={() => setShowLoginModal(true)}>
+                            <IconUserPlus className="size-4" /> Follow
                         </Button>
                     ) : (
                         <Button
@@ -192,6 +198,25 @@ export default function ProfilePage() {
                     </TabsContent>
                 </Tabs>
             </main>
+
+            <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+                <DialogContent className="max-w-sm text-center">
+                    <DialogHeader>
+                        <DialogTitle>Sign in to follow</DialogTitle>
+                        <DialogDescription>
+                            Create an account or log in to follow {profileUser?.username} and see their latest recipes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-2 mt-2">
+                        <Button asChild className="w-full" onClick={() => setShowLoginModal(false)}>
+                            <Link href="/login">Log In</Link>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full" onClick={() => setShowLoginModal(false)}>
+                            <Link href="/register">Sign Up</Link>
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
