@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getAllAchievements, getUserAchievementProgress } from "@/lib/db/achievementService";
@@ -126,23 +125,11 @@ export default function AchievementsPage() {
             <Navbar />
             <main className="mx-auto max-w-7xl px-4 py-8">
             {/* Page header */}
-            <div className="flex items-start justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold">Your Achievements</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Track your cooking journey and earn badges for your accomplishments
-                    </p>
-                </div>
-
-                {/* Achievements / Challenges toggle */}
-                <div className="flex gap-2">
-                    <Button variant="default" size="sm">
-                        Achievements
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href="/challenges">Challenges</Link>
-                    </Button>
-                </div>
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold">Achievements</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                    Track your cooking journey and earn badges for your accomplishments
+                </p>
             </div>
 
             {/* Status tabs */}

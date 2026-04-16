@@ -5,15 +5,15 @@ const ACHIEVEMENTS_COLLECTION = 'achievements';
 
 /**
  * Fetches all achievement definitions from the top-level achievements collection.
- * Returns them ordered by category then title so sections are already sorted.
+ * Ordered by category only (compound orderBy requires a composite index).
+ * Titles are sorted client-side in the page component.
  *
  * @returns {Promise<Array<{ id: string, title: string, description: string, category: string, goalValue: number, unit: string, trackingType: string, iconURL: string }>>}
  */
 export const getAllAchievements = async () => {
     const q = query(
         collection(db, ACHIEVEMENTS_COLLECTION),
-        orderBy('category'),
-        orderBy('title')
+        orderBy('category')
     );
     const snap = await getDocs(q);
     return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
