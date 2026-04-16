@@ -22,7 +22,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { getRecipe } from "@/lib/db/recipeService";
+import { getRecipe, deleteRecipe } from "@/lib/db/recipeService";
 import RecipeIngredientsPanel from "./_components/RecipeIngredientsPanel";
 import RecipeInfoPanel from "./_components/RecipeInfoPanel";
 import RecipeMediaCarousel from "./_components/RecipeMediaCarousel";
@@ -43,6 +43,8 @@ export default function RecipeDetailPage() {
     const [error, setError] = useState("");
     const [recipe, setRecipe] = useState(null);
     const [desiredServings, setDesiredServings] = useState(1);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -146,13 +148,40 @@ export default function RecipeDetailPage() {
         setDesiredServings(nextValue);
     };
 
-    const canEditRecipe = Boolean(user?.uid && recipe?.userId && user.uid === recipe.userId);
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteRecipe(recipeId);
+            setRecipe(prev => ({ ...prev, status: 'deleted' }));
+            setShowDeleteConfirm(false);
+        } catch (err) {
+            setError("Failed to delete recipe.");
+            setShowDeleteConfirm(false);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const canEditRecipe = Boolean(
+        user?.uid &&
+        recipe?.userId &&
+        user.uid === recipe.userId &&
+        recipe?.status !== "archived" &&
+        recipe?.status !== "deleted"
+    );
+
+    const canDeleteRecipe = Boolean(
+        user?.uid &&
+        recipe?.userId &&
+        user.uid === recipe.userId &&
+        recipe?.status !== "deleted"
+    );
 
     return (
         <div className="min-h-screen bg-muted/30">
             <Navbar />
             <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                <Button type="button" variant="ghost" className="w-fit" onClick={handleBack}>
+                <Button type="button" variant="ghost" className="w-fit text-sm font-medium text-primary hover:bg-transparent hover:text-primary/80" onClick={handleBack}>
                     <IconArrowLeft className="size-4" />
                     Back
                 </Button>
@@ -168,16 +197,33 @@ export default function RecipeDetailPage() {
                             <Button type="button" variant="outline" onClick={() => router.push("/recipes/discover")}>Go to Discover</Button>
                         </CardContent>
                     </Card>
+                ) : recipe?.status === "deleted" ? (
+                    <Card className="border-border bg-white mt-10">
+                        <CardContent className="space-y-4 p-8 flex flex-col items-center justify-center text-center">
+                            <h2 className="text-2xl font-bold">This recipe has been deleted</h2>
+                            <p className="text-muted-foreground">The creator has removed this recipe, so it is no longer available.</p>
+                            <Button asChild>
+                                <Link href="/recipes/discover">Discover Page</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
                 ) : (
                     <>
                         <section className="space-y-1">
                             <h1 className="text-4xl font-semibold tracking-tight text-foreground">{recipe?.name || "Untitled Recipe"}</h1>
-                            <p className="text-sm text-muted-foreground">by Chef {recipe?.username || "Unknown"}</p>
-                            {canEditRecipe ? (
-                                <Button asChild variant="outline" className="mt-2 w-fit">
-                                    <Link href={`/recipes/new?mode=edit&recipeId=${recipeId}`}>Edit Recipe</Link>
-                                </Button>
-                            ) : null}
+                            <p className="text-sm text-muted-foreground">by @{recipe?.username || "Unknown"}</p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {canEditRecipe ? (
+                                    <Button asChild variant="outline" className="w-fit">
+                                        <Link href={`/recipes/new?mode=edit&recipeId=${recipeId}`}>Edit Recipe</Link>
+                                    </Button>
+                                ) : null}
+                                {canDeleteRecipe ? (
+                                    <Button variant="destructive" className="w-fit" onClick={() => setShowDeleteConfirm(true)}>
+                                        Delete Recipe
+                                    </Button>
+                                ) : null}
+                            </div>
                         </section>
 
                         <RecipeMediaCarousel images={recipe?.images} recipeName={recipe?.name} />
@@ -212,56 +258,58 @@ export default function RecipeDetailPage() {
                             scaleAmount={scaleAmount}
                             formatAmount={formatAmount}
                         />
+                    </>
+                )}
 
-                        <Card className="border-border bg-white">
-                            <CardContent className="flex flex-wrap items-center gap-2 p-4">
-                                <div className="inline-flex overflow-hidden rounded-lg border border-primary/25">
-                                    <Button
-                                        type="button"
-                                        variant={voteValue === 1 ? "default" : "outline"}
-                                        onClick={onUpvote}
-                                        disabled={isWorking}
-                                        className="rounded-none border-0"
-                                    >
-                                        <IconArrowBigUp className="size-4" />
-                                    </Button>
-                                    <span className="inline-flex min-w-16 items-center justify-center bg-primary px-3 text-sm font-medium text-primary-foreground">
-                                        {formatCount(upvotes)}
-                                    </span>
-                                    <Button
-                                        type="button"
-                                        variant={voteValue === -1 ? "default" : "outline"}
-                                        onClick={onDownvote}
-                                        disabled={isWorking}
-                                        className="rounded-none border-0"
-                                    >
-                                        <IconArrowBigDown className="size-4" />
-                                    </Button>
-                                </div>
-
+                {!loading && !error && recipe && (
+                    <Card className="border-border bg-white">
+                        <CardContent className="flex flex-wrap items-center gap-2 p-4">
+                            <div className="inline-flex overflow-hidden rounded-lg border border-primary/25">
                                 <Button
                                     type="button"
-                                    variant="outline"
-                                    onClick={onSave}
-                                    disabled={isWorking}
-                                    className={hasSaved
-                                        ? "border-[#e7be4f] bg-[#f9d976] text-[#6b4a00] hover:bg-[#f2cf64]"
-                                        : "border-[#e7be4f] bg-white text-[#9b7000] hover:bg-[#fff4d1]"
-                                    }
+                                    variant={voteValue === 1 ? "default" : "outline"}
+                                    onClick={onUpvote}
+                                    disabled={isWorking || recipe?.status === "deleted"}
+                                    className="rounded-none border-0"
                                 >
-                                    <IconBookmark className="size-4" />
-                                    {formatCount(savedCount)}
+                                    <IconArrowBigUp className="size-4" />
                                 </Button>
-
-                                <Button type="button" onClick={onShare} disabled={isWorking}>
-                                    <IconShare className="size-4" />
-                                    Share
+                                <span className="inline-flex min-w-16 items-center justify-center bg-primary px-3 text-sm font-medium text-primary-foreground">
+                                    {formatCount(upvotes)}
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant={voteValue === -1 ? "default" : "outline"}
+                                    onClick={onDownvote}
+                                    disabled={isWorking || recipe?.status === "deleted"}
+                                    className="rounded-none border-0"
+                                >
+                                    <IconArrowBigDown className="size-4" />
                                 </Button>
+                            </div>
 
-                                {feedback ? <p className="text-xs text-muted-foreground">{feedback}</p> : null}
-                            </CardContent>
-                        </Card>
-                    </>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onSave}
+                                disabled={isWorking}
+                                className={hasSaved
+                                    ? "border-[#e7be4f] bg-[#f9d976] text-[#6b4a00] hover:bg-[#f2cf64]"
+                                    : "border-[#e7be4f] bg-white text-[#9b7000] hover:bg-[#fff4d1]"
+                                }
+                            >
+                                <IconBookmark className="size-4" />
+                                {formatCount(savedCount)}
+                            </Button>
+
+                            <Button type="button" onClick={onShare} disabled={isWorking || recipe?.status === "deleted"}>
+                                <IconShare className="size-4" />
+                                Share
+                            </Button>
+
+                            {feedback ? <p className="text-xs text-muted-foreground">{feedback}</p> : null}
+                        </CardContent>
+                    </Card>
                 )}
             </main>
 
@@ -279,6 +327,23 @@ export default function RecipeDetailPage() {
                         </Button>
                         <Button asChild variant="outline">
                             <Link href="/register">Sign up</Link>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Recipe</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this recipe? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                            {isDeleting ? "Deleting..." : "Delete"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

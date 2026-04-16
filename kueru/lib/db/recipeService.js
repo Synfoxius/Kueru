@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { arrayUnion, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
 
 const RECIPES_COLLECTION = 'recipes';
@@ -203,6 +203,10 @@ const buildBaseQueryConstraints = (filters, pageLimit, lastDoc) => {
 };
 
 const recipeMatchesFilters = (recipe, filters, usersById) => {
+    if (recipe.status && recipe.status !== 'available') {
+        return false;
+    }
+
     const normalizedSearch = filters.searchTerm.toLowerCase();
     if (normalizedSearch) {
         const searchableText = `${recipe.name ?? ''} ${recipe.description ?? ''}`.toLowerCase();
@@ -395,6 +399,7 @@ export const createRecipe = async (recipeData = {}) => {
         challengeId: recipeData.challengeId ?? null,
         upvotes: 0,
         saved: 0,
+        status: 'available',
         createdAt: serverTimestamp(),
     });
 
@@ -402,12 +407,48 @@ export const createRecipe = async (recipeData = {}) => {
         createdAt: serverTimestamp(),
     });
 
-    batch.set(userRef, {
-        createdRecipes: arrayUnion(recipeRef.id),
-    }, { merge: true });
-
     await batch.commit();
     return { recipeId: recipeRef.id };
+};
+
+export const updateRecipe = async (recipeId, recipeData = {}) => {
+    if (!recipeId) {
+        throw new Error('Recipe ID is required.');
+    }
+
+    const name = String(recipeData.name ?? '').trim();
+    const description = String(recipeData.description ?? '').trim();
+    const time = Number(recipeData.time);
+    const servings = Number(recipeData.servings);
+
+    const images = Array.isArray(recipeData.images)
+        ? recipeData.images.map((item) => String(item ?? '').trim()).filter(Boolean)
+        : [];
+    const tags = normalizeStringArray(recipeData.tags);
+    const ingredients = normalizeIngredientObject(recipeData.ingredients);
+    const steps = normalizeStepArray(recipeData.steps, ingredients);
+
+    if (!name) throw new Error('Recipe name is required.');
+    if (!description) throw new Error('Recipe description is required.');
+    if (!Number.isFinite(time) || time <= 0) throw new Error('Cook time must be a positive number.');
+    if (!Number.isFinite(servings) || servings <= 0) throw new Error('Servings must be a positive number.');
+    if (images.length < 1) throw new Error('At least one media item is required.');
+    if (Object.keys(ingredients).length < 1) throw new Error('At least one valid ingredient is required.');
+    if (steps.length < 1) throw new Error('At least one step instruction is required.');
+
+    const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
+    
+    await updateDoc(recipeRef, {
+        name,
+        description,
+        time,
+        servings,
+        images,
+        tags,
+        ingredients,
+        steps,
+        challengeId: recipeData.challengeId ?? null,
+    });
 };
 
 export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 10) => {
@@ -476,20 +517,20 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
 
 export const getRecipesByUser = async (userId, lastDoc = null, limitCount = 10) => {
     const recipesRef = collection(db, RECIPES_COLLECTION);
-    
+
     let queryConstraints = [
         where('userId', '==', userId),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
     ];
-    
+
     if (lastDoc) {
         queryConstraints.push(startAfter(lastDoc));
     }
-    
+
     const q = query(recipesRef, ...queryConstraints);
     const snap = await getDocs(q);
-    
+
     const recipes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return { recipes, lastDoc: snap.docs[snap.docs.length - 1] };
 };
@@ -556,4 +597,43 @@ export const getAvailableRecipeIngredients = async () => {
     });
 
     return [...ingredientSet].sort((leftIngredient, rightIngredient) => leftIngredient.localeCompare(rightIngredient));
+};
+
+export const getMaxRecipeCookTime = async () => {
+    const recipesRef = collection(db, RECIPES_COLLECTION);
+    const q = query(recipesRef, orderBy('time', 'desc'), limit(1));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        return 240;
+    }
+
+    const maxTime = snap.docs[0].data().time;
+    return Number.isFinite(Number(maxTime)) && Number(maxTime) > 0 ? Number(maxTime) : 240;
+};
+
+export const deleteRecipe = async (recipeId) => {
+    if (!recipeId) throw new Error('Recipe ID is required.');
+
+    const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
+    const snap = await getDoc(recipeRef);
+
+    if (!snap.exists()) return;
+
+    const recipeData = snap.data();
+    const userId = recipeData.userId;
+
+    if (userId) {
+        const userCreatedRef = doc(db, 'users', userId, 'createdRecipes', recipeId);
+        const userSavedRef = doc(db, 'users', userId, 'savedRecipes', recipeId);
+        const batch = writeBatch(db);
+
+        batch.update(recipeRef, { status: 'deleted' });
+        batch.delete(userCreatedRef);
+        batch.delete(userSavedRef);
+
+        await batch.commit();
+    } else {
+        await updateDoc(recipeRef, { status: 'deleted' });
+    }
 };
