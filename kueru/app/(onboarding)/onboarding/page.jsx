@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -47,9 +47,9 @@ const SKILL_OPTIONS = [
 
 const INTEREST_OPTIONS = [
     "Italian", "Mexican", "Japanese", "Chinese", "Indian", "Thai",
-    "French", "Mediterranean", "Korean", "Vietnamese", "American",
+    "French", "Korean", "Vietnamese", "American",
     "Middle Eastern", "Spanish", "Greek", "Vegetarian", "Vegan",
-    "Desserts", "Baking", "BBQ & Grilling", "Seafood",
+    "Muslim", "Seafood",
 ];
 
 // ─── Reusable toggle pill ─────────────────────────────────────────────────────
@@ -85,12 +85,13 @@ function OnboardingPage() {
     const [recipeInterests, setRecipeInterests] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
+    const completedRef = useRef(false);
 
     // Page-level guard
     useEffect(() => {
         if (loading) return;
         if (!user) { router.push("/login"); return; }
-        if (userDoc?.onboardingComplete === true) { router.push("/profile"); return; }
+        if (userDoc?.onboardingComplete === true && !completedRef.current) { router.push("/profile"); return; }
     }, [loading, user, userDoc, router]);
 
     if (loading || !user) return null;
@@ -146,6 +147,7 @@ function OnboardingPage() {
     const handleFinish = async () => {
         setSubmitting(true);
         try {
+            completedRef.current = true;
             await completeOnboarding(user.uid, {
                 dietaryPreferences,
                 foodAllergies,
@@ -153,7 +155,6 @@ function OnboardingPage() {
                 recipeInterests,
             });
             setStep(5);
-            setTimeout(() => router.push("/profile"), 2500);
         } catch {
             setError("Failed to save your preferences. Please try again.");
         } finally {
@@ -302,7 +303,9 @@ function OnboardingPage() {
                                 Your account has been created successfully.
                             </p>
                         </div>
-                        <p className="text-xs text-muted-foreground animate-pulse">Redirecting to your profile...</p>
+                        <Button className="w-full h-12 rounded-xl text-base font-semibold" onClick={() => router.push("/profile")}>
+                            Continue to Profile
+                        </Button>
                     </div>
                 );
 
@@ -316,6 +319,8 @@ function OnboardingPage() {
     const meta = STEP_META[step] ?? STEP_META[1];
 
     return (
+        <>
+        <title>Getting Started | Kueru</title>
         <div className="flex min-h-screen flex-col md:flex-row">
 
             {/* LEFT PANEL — form */}
@@ -358,6 +363,7 @@ function OnboardingPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

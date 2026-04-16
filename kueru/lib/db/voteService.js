@@ -1,5 +1,6 @@
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { createNotification } from './notificationService';
 
 const VOTES_COLLECTION = 'post_votes';
 
@@ -51,9 +52,38 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
         voteType: voteValue,
         votedAt: serverTimestamp(),
     });
-    await updateDoc(targetRef, {
-        [TARGET_FIELD[targetType]]: increment(pointDifference),
-    });
+
+    const targetSnap = await getDoc(targetRef);
+    if (targetSnap.exists()) {
+        await updateDoc(targetRef, {
+            [TARGET_FIELD[targetType]]: increment(pointDifference),
+        });
+
+        // Notify on new upvotes only (not switches from downvote)
+        if (voteValue === 1 && !existingSnap.exists()) {
+            const targetData = targetSnap.data();
+            const targetAuthorId = targetData?.userId;
+            if (targetAuthorId) {
+                if (targetType === 'post') {
+                    await createNotification(targetAuthorId, userId, 'post_upvote', targetId, {
+                        postTitle: targetData?.title ?? null,
+                    });
+                } else {
+                    // comment — fetch parent post for its title
+                    const postId = targetData?.postId ?? null;
+                    let postTitle = null;
+                    if (postId) {
+                        const postSnap = await getDoc(doc(db, 'forum_posts', postId));
+                        postTitle = postSnap.data()?.title ?? null;
+                    }
+                    await createNotification(targetAuthorId, userId, 'comment_upvote', targetId, {
+                        postId,
+                        postTitle,
+                    });
+                }
+            }
+        }
+    }
 };
 
 /**
@@ -68,7 +98,10 @@ export const removeVote = async (userId, targetId, targetType) => {
 
     const existingVote = existingSnap.data().voteType;
     await deleteDoc(voteRef);
-    await updateDoc(targetRef, {
-        [TARGET_FIELD[targetType]]: increment(-existingVote),
-    });
+    const targetSnap = await getDoc(targetRef);
+    if (targetSnap.exists()) {
+        await updateDoc(targetRef, {
+            [TARGET_FIELD[targetType]]: increment(-existingVote),
+        });
+    }
 };

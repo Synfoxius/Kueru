@@ -39,6 +39,49 @@ export const updatePostUpvotes = async (postId, incrementAmount) => {
     });
 };
 
+/**
+ * Fetch a single forum post by ID.
+ * @param {string} postId
+ */
+export const getPost = async (postId) => {
+    const snap = await adminDB.collection(FORUM_COLLECTION).doc(postId).get();
+    if (!snap.exists) return null;
+    return { id: snap.id, ...snap.data() };
+};
+
+/**
+ * Fetch all forum posts, newest first.
+ */
+export const getAllPosts = async () => {
+    const snap = await adminDB.collection(FORUM_COLLECTION)
+        .orderBy('postedDateTime', 'desc')
+        .limit(200)
+        .get();
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+/**
+ * Fetch forum posts filtered by status, newest first.
+ * @param {string} status - 'available' | 'pending' | 'deleted' | 'archived'
+ */
+export const getPostsByStatus = async (status) => {
+    const snap = await adminDB.collection(FORUM_COLLECTION)
+        .where('status', '==', status)
+        .orderBy('postedDateTime', 'desc')
+        .limit(200)
+        .get();
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+/**
+ * Update the status of a forum post.
+ * @param {string} postId
+ * @param {string} status - 'available' | 'pending' | 'deleted' | 'archived'
+ */
+export const updatePostStatus = async (postId, status) => {
+    await adminDB.collection(FORUM_COLLECTION).doc(postId).update({ status });
+};
+
 export const updatePostCommentCount = async (postId, incrementAmount) => {
     const postRef = adminDB.collection(FORUM_COLLECTION).doc(postId);
     await adminDB.runTransaction(async (transaction) => {

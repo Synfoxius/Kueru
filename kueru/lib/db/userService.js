@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp, documentId } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp, documentId, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 const RECIPES_COLLECTION = 'recipes';
@@ -38,6 +38,26 @@ export const getUserByUsername = async (username) => {
 export const updateUser = async (userId, partialData) => {
     const userRef = doc(db, USERS_COLLECTION, userId);
     await updateDoc(userRef, partialData);
+};
+
+export const hidePost = async (userId, postId) => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, { hiddenPosts: arrayUnion(postId) });
+};
+
+export const unhidePost = async (userId, postId) => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, { hiddenPosts: arrayRemove(postId) });
+};
+
+export const savePost = async (userId, postId) => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, { savedPosts: arrayUnion(postId) });
+};
+
+export const unsavePost = async (userId, postId) => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, { savedPosts: arrayRemove(postId) });
 };
 
 export const getCreatedRecipes = async (userId, lastDoc = null, limitCount = 10) => {
@@ -100,6 +120,7 @@ export const createUser = async (uid, { email, username, profileImage = '' }) =>
         savedRecipes: [],
         achievementCompleted: {},
         challengesJoined: {},
+        status: 'active',
     });
 };
 

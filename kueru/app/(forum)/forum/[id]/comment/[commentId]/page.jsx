@@ -5,6 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { getPost } from "@/lib/db/forumService";
+import { getUser } from "@/lib/db/userService";
 import { getComment, getRepliesByComment, createComment } from "@/lib/db/commentService";
 import { Button } from "@/components/ui/button";
 import { IconMessageCircle, IconSend, IconArrowUpRight } from "@tabler/icons-react";
@@ -24,6 +25,15 @@ export default function SingleCommentPage({ params }) {
 
     const [commentText, setCommentText] = useState("");
     const [submittingComment, setSubmittingComment] = useState(false);
+    const [currentUsername, setCurrentUsername] = useState(null);
+
+    useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                if (u) { setCurrentUsername(u.username); }
+            });
+        }
+    }, [user]);
 
     const loadReplies = async () => {
         const fetched = await getRepliesByComment(commentId);
@@ -38,9 +48,8 @@ export default function SingleCommentPage({ params }) {
                     getPost(postId),
                     getComment(commentId),
                 ]);
-                if (!fetchedPost) { setError("Post not found."); return; }
                 if (!fetchedComment) { setError("Comment not found."); return; }
-                setPost(fetchedPost);
+                setPost(fetchedPost ?? null);
                 setRootComment(fetchedComment);
                 await loadReplies();
             } catch {
@@ -76,25 +85,31 @@ export default function SingleCommentPage({ params }) {
     return (
         <div className="min-h-screen bg-background">
 
-            <div className="h-14 w-full border-b bg-white flex items-center px-6">
-                <Navbar />
-            </div>
+            <Navbar />
 
             <div className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-5 mb-10">
 
                 <BackToForumButton />
 
                 {/* Post card */}
-                <PostDetailCard post={post} />
+                {post ? (
+                    <PostDetailCard post={post} />
+                ) : (
+                    <div className="rounded-xl border border-border bg-white shadow-sm px-6 py-5">
+                        <p className="text-sm text-muted-foreground italic">[This post has been deleted]</p>
+                    </div>
+                )}
 
                 {/* Context banner */}
-                <Link
-                    href={`/forum/${postId}#comments`}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors w-fit"
-                >
-                    <IconArrowUpRight className="size-4" />
-                    View full thread
-                </Link>
+                {post && (
+                    <Link
+                        href={`/forum/${postId}#comments`}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors w-fit"
+                    >
+                        <IconArrowUpRight className="size-4" />
+                        View full thread
+                    </Link>
+                )}
 
                 {/* Root comment */}
                 <div className="rounded-xl border-l-4 border-l-primary border border-border bg-white shadow-sm overflow-hidden">
@@ -108,6 +123,7 @@ export default function SingleCommentPage({ params }) {
                             currentUserId={user?.uid ?? null}
                             postId={postId}
                             depth={0}
+                            postDeleted={!post}
                         />
                     </div>
                 </div>
@@ -117,14 +133,20 @@ export default function SingleCommentPage({ params }) {
 
                     <div className="px-6 py-4 border-b border-border flex items-center gap-2">
                         <IconMessageCircle className="size-4 text-primary" />
-                        <h2 className="text-sm font-semibold">Replies ({replies.length})</h2>
+                        <h2 className="text-sm font-semibold">
+                            {replies.length} {replies.length === 1 ? "Reply" : "Replies"}
+                        </h2>
                     </div>
 
                     {/* Reply input */}
-                    {user ? (
+                    {!post ? (
+                        <div className="px-6 py-4 border-b border-border text-sm text-muted-foreground italic">
+                            Replies are disabled — this post has been deleted.
+                        </div>
+                    ) : user ? (
                         <div className="px-6 py-4 border-b border-border flex gap-3 items-start">
                             <div className="flex items-center justify-center size-9 rounded-full bg-primary/10 shrink-0 text-sm font-bold text-primary">
-                                {user.email?.[0].toUpperCase()}
+                                {(currentUsername ?? user.email ?? "?")[0].toUpperCase()}
                             </div>
                             <div className="flex-1 flex gap-2 items-end">
                                 <textarea
@@ -154,7 +176,9 @@ export default function SingleCommentPage({ params }) {
                     {/* Replies list */}
                     <div className="px-6 divide-y divide-border">
                         {replies.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-6 text-center">No replies yet. Be the first!</p>
+                            post && (
+                                <p className="text-sm text-muted-foreground py-6 text-center">No replies yet. Be the first!</p>
+                            )
                         ) : (
                             replies.map((reply) => (
                                 <CommentCard
@@ -163,6 +187,7 @@ export default function SingleCommentPage({ params }) {
                                     currentUserId={user?.uid ?? null}
                                     postId={postId}
                                     depth={0}
+                                    postDeleted={!post}
                                 />
                             ))
                         )}

@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import { getRecentPosts } from "@/lib/db/forumService";
+import { getUser } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { IconSearch, IconPlus } from "@tabler/icons-react";
+import { IconSearch, IconPlus, IconLayoutSidebar } from "@tabler/icons-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Navbar from "@/components/Navbar";
 
 import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
 import TrendingPanel from "./_components/TrendingPanel";
 import CategoriesPanel from "./_components/CategoriesPanel";
+import DevSeedButton from "./_components/DevSeedButton";
 
 // ── Placeholder data (replace with Firestore fetches later) ──────────────────
-
 const RECIPE_OF_THE_DAY = {
     name: "Mediterranean Quinoa Bowl",
     description: "A vibrant nutrition bowl packed with roasted vegetables, crispy chickpeas, and a creamy tahini dressing.",
@@ -30,7 +33,9 @@ const SORT_OPTIONS = ["Most Popular", "Newest", "Most Comments"];
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function ForumPage() {
-    const [allPosts, setAllPosts] = useState([]);
+    const { user } = useAuth();
+    const [hiddenPostIds, setHiddenPostIds] = useState([]);
+    const [allPosts, setAllPosts]= useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -44,6 +49,14 @@ export default function ForumPage() {
     const LIMIT = 15;
 
     useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                if (u?.hiddenPosts) { setHiddenPostIds(u.hiddenPosts); }
+            });
+        }
+    }, [user]);
+
+    useEffect(() => {
         getRecentPosts()
             .then(({ posts, lastDoc }) => {
                 setAllPosts(posts);
@@ -54,6 +67,10 @@ export default function ForumPage() {
             .catch(() => setError("Failed to load forum posts. Please try again later."))
             .finally(() => setLoading(false));
     }, []);
+
+    const handlePostDeleted = (postId) => {
+        setAllPosts((prev) => prev.filter((post) => post.id !== postId));
+    };
 
     const handleLoadMore = async () => {
         if (!lastDoc || loadingMore) return;
@@ -69,10 +86,19 @@ export default function ForumPage() {
         }
     };
 
-    const trendingPosts = 
-        [...allPosts]
+    const trendingPosts =
+        allPosts
+        .filter((post) => !hiddenPostIds.includes(post.id))
         .sort((a, b) => (b.upvotesCount ?? 0) - (a.upvotesCount ?? 0))
         .slice(0, 5);
+
+    const handlePostHidden = (postId) => {
+        setHiddenPostIds((prev) => [...prev, postId]);
+    };
+
+    const handlePostUnhidden = (postId) => {
+        setHiddenPostIds((prev) => prev.filter((id) => id !== postId));
+    };
 
     const displayedPosts = [...allPosts]
         .filter(post => {
@@ -88,10 +114,10 @@ export default function ForumPage() {
                 return b.upvotesCount - a.upvotesCount;
             }
             if (sort === "Newest") {
-                return b.postedDateTime?.seconds - a.postedDateTime?.seconds;
+                return (b.postedDateTime?.seconds ?? 0) - (a.postedDateTime?.seconds ?? 0);
             }
             if (sort === "Most Comments") {
-                return b.commentsCount - a.commentsCount;
+                return (b.commentsCount ?? 0) - (a.commentsCount ?? 0);
             }
             return 0;
         });
@@ -99,20 +125,18 @@ export default function ForumPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            <div className="h-14 w-full border-b bg-card flex items-center px-6 text-sm text-muted-foreground">
-                <Navbar />
-            </div>
+            <Navbar />
 
             {/* ── Main layout ── */}
-            <div className="mx-auto max-w-6xl px-4 py-6 flex gap-6">
+            <div className="mx-auto max-w-6xl px-4 py-6 flex gap-6 mb-10">
 
                 {/* ── Left: main content ── */}
                 <div className="flex flex-1 flex-col gap-4 min-w-0">
 
-                    <RecipeOfTheDay recipe={RECIPE_OF_THE_DAY} />
+                    <RecipeOfTheDay />
 
                     {/* Search + sort bar */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <div className="relative flex-1">
                             <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                             <Input
@@ -131,12 +155,43 @@ export default function ForumPage() {
                                 <option key={opt}>{opt}</option>
                             ))}
                         </select>
+                        {/* Mobile: sidebar trigger */}
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon" className="shrink-0 lg:hidden bg-white">
+                                    <IconLayoutSidebar className="size-4" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="w-72 flex flex-col gap-4 overflow-y-auto">
+                                <SheetHeader>
+                                    <SheetTitle>Forum</SheetTitle>
+                                </SheetHeader>
+                                <Link href="/forum/create">
+                                    <Button className="w-full gap-2">
+                                        <IconPlus className="size-4" />
+                                        Create new Post
+                                    </Button>
+                                </Link>
+                                <DevSeedButton />
+                                <TrendingPanel posts={trendingPosts} />
+                                <CategoriesPanel
+                                    categories={categories}
+                                    selectedCategories={selectedCategories}
+                                    onToggle={(category) => {
+                                        setSelectedCategories((prev) => {
+                                            const isSelected = prev.includes(category);
+                                            if (isSelected) { return prev.filter((c) => c !== category); }
+                                            return [...prev, category];
+                                        });
+                                    }}
+                                />
+                            </SheetContent>
+                        </Sheet>
                     </div>
 
                     <Separator />
 
                     {/* Post feed */}
-
                     {displayedPosts.length === 0 && !loading && !error && (
                         <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
                             <div className="flex items-center justify-center size-16 rounded-full bg-muted">
@@ -145,7 +200,7 @@ export default function ForumPage() {
                             <div>
                                 <h2 className="text-lg font-semibold text-foreground">No posts found</h2>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    {search || categories.length > 0
+                                    {search || selectedCategories.length > 0
                                         ? "Try adjusting your search or filters"
                                         : "Be the first to start a discussion"}
                                 </p>
@@ -161,7 +216,14 @@ export default function ForumPage() {
                     ) : (
                         <div className="flex flex-col gap-3">
                             {displayedPosts.map((post) => (
-                                <PostCard key={post.id} post={post} />
+                                <PostCard
+                                    key={post.id}
+                                    post={post}
+                                    onDeleted={handlePostDeleted}
+                                    isHidden={hiddenPostIds.includes(post.id)}
+                                    onHidden={handlePostHidden}
+                                    onUnhidden={handlePostUnhidden}
+                                />
                             ))}
                             {hasMore && !search && selectedCategories.length === 0 && (
                                 <Button
@@ -177,14 +239,15 @@ export default function ForumPage() {
                     )}
                 </div>
 
-                {/* ── Right: sidebar ── */}
-                <aside className="w-64 shrink-0 flex flex-col gap-4">
+                {/* ── Right: sidebar (desktop only) ── */}
+                <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4">
                     <Link href="/forum/create">
                         <Button className="w-full gap-2">
                             <IconPlus className="size-4" />
                             Create new Post
                         </Button>
                     </Link>
+                    <DevSeedButton />
                     <TrendingPanel posts={trendingPosts} />
                     <CategoriesPanel
                         categories={categories}
@@ -192,9 +255,7 @@ export default function ForumPage() {
                         onToggle={(category) => {
                             setSelectedCategories((prev) => {
                                 const isSelected = prev.includes(category);
-                                if (isSelected) {
-                                    return prev.filter((c) => c !== category);
-                                }
+                                if (isSelected) { return prev.filter((c) => c !== category); }
                                 return [...prev, category];
                             });
                         }}

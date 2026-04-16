@@ -1,7 +1,7 @@
 import admin from 'firebase-admin';
-import { adminDB, adminAuth } from '../firebase/backend_config';
+import { adminDB } from '../firebase/backend_config';
 
-const VERIFICATIONS_COLLECTION = 'chef_verifications';
+const VERIFICATIONS_COLLECTION = 'verification_requests';
 const USERS_COLLECTION = 'users';
 
 /**
@@ -23,6 +23,32 @@ export const getPendingChefVerifications = async () => {
         .orderBy('submittedAt', 'asc')
         .get();
         
+    return snap.docs.map(doc => ({ verificationId: doc.id, ...doc.data() }));
+};
+
+/**
+ * Fetch all verification records, newest first.
+ */
+export const getAllChefVerifications = async () => {
+    const snap = await adminDB.collection(VERIFICATIONS_COLLECTION)
+        .orderBy('submittedAt', 'desc')
+        .limit(200)
+        .get();
+
+    return snap.docs.map(doc => ({ verificationId: doc.id, ...doc.data() }));
+};
+
+/**
+ * Fetch verification records filtered by a single status, newest first.
+ * @param {string} status - 'pending' | 'under_review' | 'approved' | 'rejected'
+ */
+export const getChefVerificationsByStatus = async (status) => {
+    const snap = await adminDB.collection(VERIFICATIONS_COLLECTION)
+        .where('status', '==', status)
+        .orderBy('submittedAt', 'desc')
+        .limit(200)
+        .get();
+
     return snap.docs.map(doc => ({ verificationId: doc.id, ...doc.data() }));
 };
 
@@ -59,13 +85,23 @@ export const updateVerificationStatus = async (verificationId, status, reviewerI
 
         transaction.update(verificationRef, updatePayload);
 
-        // If approved, update the user's role to 'chef'
+        // If approved, mark the user as verified
         if (status === 'approved') {
             const userRef = adminDB.collection(USERS_COLLECTION).doc(userId);
-            transaction.update(userRef, { role: 'chef' });
-            
-            // Optionally, we could set custom auth claims here as well
-            // await adminAuth.setCustomUserClaims(userId, { role: 'chef' });
+            transaction.update(userRef, { verified: true });
+        }
+
+        // Notify the user of the verification outcome
+        if (status === 'approved' || status === 'rejected') {
+            const notifRef = adminDB.collection('notifications').doc();
+            transaction.set(notifRef, {
+                recipientId: userId,
+                senderId: null,
+                type: status === 'approved' ? 'verification_approved' : 'verification_rejected',
+                targetId: verificationId,
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
         }
     });
 };

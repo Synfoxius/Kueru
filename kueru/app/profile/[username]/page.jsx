@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { IconUserPlus, IconUserCheck, IconEdit } from "@tabler/icons-react";
+import { IconUserPlus, IconUserCheck, IconEdit, IconShieldCheckFilled } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { getUserByUsername } from "@/lib/db/userService";
@@ -43,7 +43,7 @@ export default function ProfilePage() {
 
             setProfileUser(user);
 
-            const recipesData = await getRecipesByUser(username).catch(() => ({ recipes: [] }));
+            const recipesData = await getRecipesByUser(user.userId).catch(() => ({ recipes: [] }));
             setRecipes(recipesData.recipes ?? []);
 
             if (currentUser && currentUser.uid !== user.userId) {
@@ -101,6 +101,7 @@ export default function ProfilePage() {
 
     return (
         <>
+            <title>{profileUser ? `@${profileUser.username} | Kueru` : "Profile | Kueru"}</title>
             <ConditionalNavbar />
                 <main className="w-full px-8 sm:px-12 lg:px-20 py-8">
 
@@ -116,10 +117,12 @@ export default function ProfilePage() {
                     </Avatar>
 
                     <div className="flex-1 min-w-0 space-y-3">
-                        {/* Username + action buttons */}
-                        <div className="flex flex-wrap items-center gap-3">
+                        {/* Username + verified badge */}
+                        <div className="flex flex-wrap items-center gap-2">
                             <h1 className="text-2xl font-bold">@{profileUser.username}</h1>
-                            
+                            {profileUser.verified && (
+                                <IconShieldCheckFilled className="size-5 text-amber-500" title="Verified Chef" />
+                            )}
                         </div>
 
                         {/* Stats */}
@@ -177,13 +180,13 @@ export default function ProfilePage() {
                             value="recipes"
                             className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
                         >
-                            My Recipes
+                            Recipes
                         </TabsTrigger>
                         <TabsTrigger
                             value="forums"
                             className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
                         >
-                            My Forums
+                            Forums
                         </TabsTrigger>
                     </TabsList>
 
@@ -198,7 +201,7 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="forums">
-                        <UserPosts userId={profileUser.userId} />
+                        <UserPosts userId={profileUser.userId} savedPostsId={profileUser.savedPosts} hiddenPostIds={profileUser.hiddenPosts ?? []} isOwnProfile={isOwnProfile} />
                     </TabsContent>
                 </Tabs>
             </main>

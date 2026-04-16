@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { IconSend, IconPencil, IconPhoto, IconTag, IconBook2 } from "@tabler/icons-react";
+import { IconSend, IconPencil, IconPhotoVideo, IconTag, IconBook2 } from "@tabler/icons-react";
 import RecipeSelector from "./_components/RecipeSelector";
 import ImageUploader from "./_components/ImageUploader";
 import SectionCard from "./_components/SectionCard";
@@ -23,22 +23,23 @@ const MAX_TITLE_LENGTH = 300;
 
 export default function CreatePostPage() {
     const router = useRouter();
-    const { user, userDoc, loading } = useAuth();
-
+    const { user, loading } = useAuth();
     const [title, setTitle] = useState("");
     const [bodyText, setBodyText] = useState("");
     const [mediaURLs, setMediaURLs] = useState([]);
+    const [videoEmbed, setVideoEmbed] = useState(null);
     const [category, setCategory] = useState(null);
     const [selectedRecipeId, setSelectedRecipeId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    if (loading) {
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push("/login");
+        }
+    }, [loading, user, router]);
+
+    if (loading || !user) {
         return null;
-    }
-    //If user is not logged in, redirect to login page.
-    if (!user) { 
-        router.push("/login"); 
-        return null; 
     }
 
     const postType = selectedRecipeId ? "Recipe" : "Discussion";
@@ -62,9 +63,11 @@ export default function CreatePostPage() {
                 contentType,
                 content: bodyText,
                 imageURLs: filledURLs,
+                videoEmbed: videoEmbed ?? null,
                 postCategory: category,
                 postType,
                 recipeId: postType === "Recipe" ? selectedRecipeId : null,
+                status: "available"
             });
             router.push("/forum");
         } finally {
@@ -75,9 +78,7 @@ export default function CreatePostPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            <div className="h-14 w-full border-b bg-white flex items-center px-6 text-sm text-muted-foreground">
-                <Navbar />
-            </div>
+            <Navbar />
 
             {/* Back button */}
             <div className="mx-auto max-w-3xl px-4 pt-4">
@@ -103,7 +104,7 @@ export default function CreatePostPage() {
             </div>
 
             {/* Form */}
-            <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-5">
+            <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-5 mb-10">
 
                 {/* Content card */}
                 <SectionCard
@@ -146,16 +147,18 @@ export default function CreatePostPage() {
                     </div>
                 </SectionCard>
 
-                {/* Images card */}
+                {/* Media card */}
                 <SectionCard
-                    icon={IconPhoto}
-                    title="Images (optional)"
-                    subtitle="Drag & drop or click to upload photos"
+                    icon={IconPhotoVideo}
+                    title="Media (optional)"
+                    subtitle="Upload up to 4 photos and/or attach a YouTube video"
                 >
                     <ImageUploader
                         userId={user.uid}
                         imageURLs={mediaURLs}
                         onChange={setMediaURLs}
+                        videoEmbed={videoEmbed}
+                        onVideoChange={setVideoEmbed}
                     />
                 </SectionCard>
 
@@ -191,7 +194,7 @@ export default function CreatePostPage() {
                     subtitle="Attach one of your recipes"
                 >
                     <RecipeSelector
-                        username={userDoc?.username}
+                        userId={user.uid}
                         selectedRecipeId={selectedRecipeId}
                         onSelect={setSelectedRecipeId}
                     />

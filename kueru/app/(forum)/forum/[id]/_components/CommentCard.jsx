@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getUser } from "@/lib/db/userService";
-import { getRepliesByComment, createComment } from "@/lib/db/commentService";
+import { getRepliesByComment, createComment, deleteComment } from "@/lib/db/commentService";
 import { castVote, removeVote, getUserVoteOnTarget } from "@/lib/db/voteService";
 import { Button } from "@/components/ui/button";
-import { IconArrowUp, IconArrowDown, IconCornerDownRight, IconSend } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconCornerDownRight, IconSend, IconTrash } from "@tabler/icons-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 
 const MAX_DEPTH = 5;
 
@@ -23,7 +25,7 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function CommentCard({ comment, currentUserId, postId, depth = 0 }) {
+export default function CommentCard({ comment, currentUserId, postId, depth = 0, postDeleted = false }) {
     const [username, setUsername] = useState(null);
     const [voteCount, setVoteCount] = useState(comment.upvotesCount ?? 0);
     const [userVote, setUserVote] = useState(null);
@@ -34,6 +36,10 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
     const [replies, setReplies] = useState([]);
     const [loadingReplies, setLoadingReplies] = useState(false);
     const [repliesVisible, setRepliesVisible] = useState(false);
+    const [deleted, setDeleted] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+    const isOwner = currentUserId === comment.userId;
 
     useEffect(() => {
         getUser(comment.userId).then((u) => {
@@ -93,10 +99,26 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
         }
     };
 
+    const handleDelete = async () => {
+        await deleteComment(comment.id, comment.postId);
+        setShowDeleteDialog(false);
+        setDeleted(true);
+        toast.success("Comment deleted.");
+    };
+
     const atMaxDepth = depth >= MAX_DEPTH;
 
+    if (deleted) {
+        return (
+            <div className="py-4 text-xs text-muted-foreground italic">
+                [Comment deleted]
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-col">
+        <>
+        <div id={`comment-${comment.id}`} className="flex flex-col">
 
             {/* Comment row */}
             <div className="flex items-start gap-3 py-4">
@@ -126,13 +148,23 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
                     {/* Actions row */}
                     <div className="flex items-center gap-3">
 
-                        {currentUserId && (
+                        {currentUserId && !postDeleted && (
                             <button
                                 onClick={() => setShowReplyInput((prev) => !prev)}
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                             >
                                 <IconCornerDownRight className="size-3.5" />
                                 Reply
+                            </button>
+                        )}
+
+                        {isOwner && (
+                            <button
+                                onClick={() => setShowDeleteDialog(true)}
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                                <IconTrash className="size-3.5" />
+                                Delete
                             </button>
                         )}
 
@@ -152,7 +184,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
                     </div>
 
                     {/* Reply input */}
-                    {showReplyInput && (
+                    {showReplyInput && !postDeleted && (
                         <div className="flex gap-2 items-end mt-1">
                             <textarea
                                 placeholder={`Replying to @${username ?? "user"}...`}
@@ -215,6 +247,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
                                 currentUserId={currentUserId}
                                 postId={postId}
                                 depth={depth + 1}
+                                postDeleted={postDeleted}
                             />
                         ))}
                     </div>
@@ -222,5 +255,16 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
             )}
 
         </div>
+
+        <ConfirmDialog
+            open={showDeleteDialog}
+            title="Delete comment?"
+            description="This action cannot be undone."
+            confirmLabel="Delete"
+            destructive
+            onConfirm={handleDelete}
+            onCancel={() => setShowDeleteDialog(false)}
+        />
+    </>
     );
 }

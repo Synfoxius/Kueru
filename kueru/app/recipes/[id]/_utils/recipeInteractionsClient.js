@@ -1,5 +1,6 @@
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, increment, runTransaction, serverTimestamp } from "firebase/firestore";
+import { createNotification } from "@/lib/db/notificationService";
 
 const RECIPES_COLLECTION = "recipes";
 const USERS_COLLECTION = "users";
@@ -36,7 +37,7 @@ export const setRecipeVote = async (userId, recipeId, requestedVoteValue) => {
     const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
     const voteRef = doc(db, RECIPES_COLLECTION, recipeId, "votes", userId);
 
-    return runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction) => {
         const recipeSnap = await transaction.get(recipeRef);
         if (!recipeSnap.exists()) {
             throw new Error("Recipe not found.");
@@ -68,8 +69,20 @@ export const setRecipeVote = async (userId, recipeId, requestedVoteValue) => {
         return {
             voteValue: nextVote,
             upvoteDelta: incrementBy,
+            authorId: recipeSnap.data()?.userId ?? null,
+            recipeName: recipeSnap.data()?.name ?? null,
+            wasNewUpvote: currentVote <= 0,
         };
     });
+
+    // Fire notification outside the transaction (transactions may retry)
+    if (result.hasUpvoted && result.wasNewUpvote && result.authorId) {
+        await createNotification(result.authorId, userId, 'recipe_upvote', recipeId, {
+            recipeName: result.recipeName,
+        });
+    }
+
+    return result;
 };
 
 export const toggleRecipeSaved = async (userId, recipeId) => {
