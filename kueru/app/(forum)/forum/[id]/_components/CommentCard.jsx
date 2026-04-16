@@ -96,7 +96,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0 
     const atMaxDepth = depth >= MAX_DEPTH;
 
     return (
-        <div className="flex flex-col">
+        <div id={`comment-${comment.id}`} className="flex flex-col">
 
             {/* Comment row */}
             <div className="flex items-start gap-3 py-4">
