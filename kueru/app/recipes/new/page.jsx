@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { createRecipe } from "@/lib/db/recipeService";
+import { processAchievementsOnRecipePost } from "@/lib/achievements/trackingService";
 import {
     ALLERGEN_OPTIONS,
     CUISINE_TYPE_OPTIONS,
@@ -251,7 +252,8 @@ export default function NewRecipePage() {
                 steps,
             });
 
-            await createRecipe(payload);
+            const { recipeId } = await createRecipe(payload);
+            processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
             router.push("/recipes/find");
         } catch (error) {
             setSubmitError(error?.message ?? "Unable to create recipe. Please try again.");

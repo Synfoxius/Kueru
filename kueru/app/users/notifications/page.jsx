@@ -4,12 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
     IconBell, IconBellOff, IconCheck,
-    IconUserPlus, IconThumbUp, IconMessageCircle, IconAward,
+    IconUserPlus, IconThumbUp, IconMessageCircle, IconAward, IconTrophy,
 } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { getNotifications, markNotificationRead, markAllRead } from "@/lib/db/notificationService";
 import { getUser } from "@/lib/db/userService";
+import { getAchievementById } from "@/lib/db/achievementService";
 
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -33,6 +34,7 @@ const TYPE_META = {
     comment:                { icon: IconMessageCircle,  color: "text-blue-500",        label: (s) => `${s} commented on your post` },
     verification_approved:  { icon: IconAward,          color: "text-green-500",       label: () => "Your chef verification was approved!" },
     verification_rejected:  { icon: IconAward,          color: "text-destructive",     label: () => "Your chef verification was not approved." },
+    achievement_completed:  { icon: IconTrophy,         color: "text-primary",         label: (_, title) => `Well done! You've completed the "${title}" achievement. Check it out under the Achievement tab.` },
 };
 
 function timeAgo(ts) {
@@ -57,6 +59,7 @@ export default function NotificationsPage() {
 
     const [notifications, setNotifications] = useState([]);
     const [senderMap, setSenderMap] = useState({});
+    const [achievementsById, setAchievementsById] = useState({});
     const [pageLoading, setPageLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
@@ -73,6 +76,20 @@ export default function NotificationsPage() {
         return updated;
     }, []);
 
+    // Fetch achievement definitions for any achievement_completed notifications not yet in the map
+    const fetchNewAchievements = useCallback(async (notifs, existingMap) => {
+        const newIds = [...new Set(
+            notifs
+                .filter(n => n.type === 'achievement_completed' && n.targetId && !existingMap[n.targetId])
+                .map(n => n.targetId)
+        )];
+        if (newIds.length === 0) return existingMap;
+        const achievements = await Promise.all(newIds.map(id => getAchievementById(id)));
+        const updated = { ...existingMap };
+        achievements.forEach((a, i) => { if (a) updated[newIds[i]] = a; });
+        return updated;
+    }, []);
+
     const loadNotifications = useCallback(async () => {
         if (!user) return;
         setPageLoading(true);
@@ -81,10 +98,14 @@ export default function NotificationsPage() {
         setLastDoc(cursor);
         setHasMore(more);
 
-        const map = await fetchNewSenders(notifs, {});
-        setSenderMap(map);
+        const [senders, achievements] = await Promise.all([
+            fetchNewSenders(notifs, {}),
+            fetchNewAchievements(notifs, {}),
+        ]);
+        setSenderMap(senders);
+        setAchievementsById(achievements);
         setPageLoading(false);
-    }, [user, fetchNewSenders]);
+    }, [user, fetchNewSenders, fetchNewAchievements]);
 
     const loadMore = async () => {
         if (!user || !lastDoc || loadingMore) return;
@@ -93,8 +114,12 @@ export default function NotificationsPage() {
         setNotifications(prev => [...prev, ...more]);
         setLastDoc(cursor);
         setHasMore(stillMore);
-        const updated = await fetchNewSenders(more, senderMap);
-        setSenderMap(updated);
+        const [updatedSenders, updatedAchievements] = await Promise.all([
+            fetchNewSenders(more, senderMap),
+            fetchNewAchievements(more, achievementsById),
+        ]);
+        setSenderMap(updatedSenders);
+        setAchievementsById(updatedAchievements);
         setLoadingMore(false);
     };
 
@@ -178,13 +203,20 @@ export default function NotificationsPage() {
                                 const Icon = meta.icon;
                                 const sender = notif.senderId ? senderMap[notif.senderId] : null;
                                 const senderName = sender?.username ?? "Someone";
-                                const message = meta.label(senderName);
+                                const achievementTitle = achievementsById[notif.targetId]?.title ?? "an achievement";
+                                const message = meta.label(senderName, achievementTitle);
+                                const href = notif.type === 'achievement_completed' && notif.targetId
+                                    ? `/achievements/${notif.targetId}`
+                                    : null;
 
                                 return (
                                     <li key={notif.id}>
                                         <button
                                             className={`w-full flex items-start gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-muted/60 ${!notif.read ? "bg-primary/5" : ""}`}
-                                            onClick={() => !notif.read && handleMarkRead(notif.id)}
+                                            onClick={() => {
+                                                if (!notif.read) handleMarkRead(notif.id);
+                                                if (href) router.push(href);
+                                            }}
                                         >
                                             {/* Sender avatar or system icon */}
                                             <div className="relative shrink-0 mt-0.5">

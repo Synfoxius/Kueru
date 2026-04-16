@@ -1,7 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
-import { IconTrophy } from "@tabler/icons-react";
+import { IconTrophy, IconFlame, IconWorld, IconMedal, IconStar } from "@tabler/icons-react";
+
+function getCategoryIcon(category) {
+    switch (category) {
+        case "Cooking Streaks": return IconFlame;
+        case "Exploration":     return IconWorld;
+        case "Skill Badges":    return IconMedal;
+        case "Milestones":      return IconStar;
+        default:                return IconTrophy;
+    }
+}
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -25,7 +36,8 @@ function formatDate(timestamp) {
  * @param {{ achievement: object, userProgress: object|null }} props
  */
 export default function AchievementCard({ achievement, userProgress }) {
-    const { title, description, goalValue, unit, iconURL } = achievement;
+    const { id, title, description, category, goalValue, unit, iconURL } = achievement;
+    const CategoryIcon = getCategoryIcon(category);
 
     const isCompleted = userProgress?.status === "completed";
     const isInProgress = userProgress?.status === "in_progress";
@@ -33,9 +45,10 @@ export default function AchievementCard({ achievement, userProgress }) {
     const progressPercent = goalValue > 0 ? Math.min((currentValue / goalValue) * 100, 100) : 0;
 
     return (
+        <Link href={`/achievements/${id}`} className="block">
         <Card
             className={cn(
-                "transition-colors",
+                "transition-colors hover:bg-muted/50 bg-white",
                 isCompleted && "border-primary border-2"
             )}
         >
@@ -56,7 +69,7 @@ export default function AchievementCard({ achievement, userProgress }) {
                             className="h-6 w-6 object-contain"
                         />
                     ) : (
-                        <IconTrophy
+                        <CategoryIcon
                             className={cn(
                                 "h-5 w-5",
                                 isCompleted || isInProgress
@@ -92,5 +105,6 @@ export default function AchievementCard({ achievement, userProgress }) {
                 </div>
             </CardContent>
         </Card>
+        </Link>
     );
 }
