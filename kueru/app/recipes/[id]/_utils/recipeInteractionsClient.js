@@ -65,13 +65,16 @@ export const toggleRecipeUpvote = async (userId, recipeId) => {
             hasUpvoted: nextVote > 0,
             upvoteDelta: incrementBy,
             authorId: recipeSnap.data()?.userId ?? null,
+            recipeName: recipeSnap.data()?.name ?? null,
             wasNewUpvote: currentVote <= 0,
         };
     });
 
     // Fire notification outside the transaction (transactions may retry)
     if (result.hasUpvoted && result.wasNewUpvote && result.authorId) {
-        await createNotification(result.authorId, userId, 'recipe_upvote', recipeId);
+        await createNotification(result.authorId, userId, 'recipe_upvote', recipeId, {
+            recipeName: result.recipeName,
+        });
     }
 
     return result;

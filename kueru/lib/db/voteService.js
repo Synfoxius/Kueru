@@ -64,9 +64,23 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
             const targetData = targetSnap.data();
             const targetAuthorId = targetData?.userId;
             if (targetAuthorId) {
-                const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
-                const extras = targetType === 'comment' && targetData?.postId ? { postId: targetData.postId } : {};
-                await createNotification(targetAuthorId, userId, notifType, targetId, extras);
+                if (targetType === 'post') {
+                    await createNotification(targetAuthorId, userId, 'post_upvote', targetId, {
+                        postTitle: targetData?.title ?? null,
+                    });
+                } else {
+                    // comment — fetch parent post for its title
+                    const postId = targetData?.postId ?? null;
+                    let postTitle = null;
+                    if (postId) {
+                        const postSnap = await getDoc(doc(db, 'forum_posts', postId));
+                        postTitle = postSnap.data()?.title ?? null;
+                    }
+                    await createNotification(targetAuthorId, userId, 'comment_upvote', targetId, {
+                        postId,
+                        postTitle,
+                    });
+                }
             }
         }
     }

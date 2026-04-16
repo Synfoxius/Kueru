@@ -39,9 +39,12 @@ export const createComment = async (postId, userId, content, parentCommentId = n
 
     // Notify the post author
     const postSnap = await getDoc(doc(db, 'forum_posts', postId));
-    const postAuthorId = postSnap.data()?.userId;
+    const postData = postSnap.data();
+    const postAuthorId = postData?.userId;
     if (postAuthorId) {
-        await createNotification(postAuthorId, userId, 'comment', postId);
+        await createNotification(postAuthorId, userId, 'comment', postId, {
+            postTitle: postData?.title ?? null,
+        });
     }
 
     return commentRef.id;
