@@ -32,7 +32,8 @@ export default function EditProfilePage() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState("");
-    const [verificationPending, setVerificationPending] = useState(false);
+    const [verificationStatus, setVerificationStatus] = useState(null); // null | 'pending' | 'under_review' | 'rejected'
+    const [rejectionReason, setRejectionReason] = useState("");
 
     const fileInputRef = useRef(null);
 
@@ -48,10 +49,15 @@ export default function EditProfilePage() {
         const q = query(
             collection(db, "verification_requests"),
             where("userId", "==", user.uid),
-            where("status", "==", "pending"),
+            where("status", "in", ["pending", "under_review", "rejected"]),
             limit(1)
         );
-        getDocs(q).then(snap => setVerificationPending(!snap.empty));
+        getDocs(q).then(snap => {
+            if (snap.empty) return;
+            const data = snap.docs[0].data();
+            setVerificationStatus(data.status);
+            if (data.status === "rejected") setRejectionReason(data.rejectionReason ?? "");
+        });
     }, [loading, user, userDoc, router]);
 
     const handleImageChange = (e) => {
@@ -105,7 +111,7 @@ export default function EditProfilePage() {
         <>
             <title>Edit Profile | Kueru</title>
             <Navbar />
-            <main className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+            <main className="w-full px-8 sm:px-12 lg:px-20 py-8 space-y-6">
 
                 {/* Page heading */}
                 <div>
@@ -212,37 +218,59 @@ export default function EditProfilePage() {
                         <div className="mt-0.5 rounded-full bg-amber-100 p-2 shrink-0">
                             <IconShieldCheck className="size-5 text-amber-600" />
                         </div>
-                        <div className="space-y-1">
-                            <p className="font-semibold text-sm">Verify as Professional Chef</p>
-                            {verificationPending ? (
+                        <div className="space-y-1 flex-1">
+                            <p className="font-semibold text-sm">Professional Chef Verification</p>
+
+                            {/* Already verified */}
+                            {userDoc?.verified ? (
+                                <p className="text-xs text-amber-700 font-medium">
+                                    You are a verified chef.
+                                </p>
+                            ) : verificationStatus === "pending" || verificationStatus === "under_review" ? (
+                                /* Pending / under review */
                                 <p className="text-xs text-amber-700 font-medium">
                                     Request received. Outcome will be released after 3–5 working days.
                                 </p>
+                            ) : verificationStatus === "rejected" ? (
+                                /* Rejected — show reason + allow re-submit */
+                                <>
+                                    <p className="text-xs text-destructive font-medium">Your verification request was not approved.</p>
+                                    {rejectionReason && (
+                                        <p className="text-xs text-muted-foreground mt-1">Reason: {rejectionReason}</p>
+                                    )}
+                                    <div className="mt-2">
+                                        <Button
+                                            size="sm"
+                                            className="bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                                            onClick={() => router.push("/profile/verify")}
+                                        >
+                                            Submit New Request
+                                        </Button>
+                                    </div>
+                                </>
                             ) : (
-                                <p className="text-xs text-muted-foreground">
-                                    Get a verified badge to show you&apos;re a professional chef. This helps build trust with
-                                    your followers and gives you access to exclusive features.
-                                </p>
+                                /* No request yet */
+                                <>
+                                    <p className="text-xs text-muted-foreground">
+                                        Get a verified badge to show you&apos;re a professional chef.
+                                    </p>
+                                    <ul className="mt-1 space-y-1 text-xs text-muted-foreground list-disc list-inside">
+                                        <li>Professional chef badge on your profile</li>
+                                        <li>Priority in search results</li>
+                                    </ul>
+                                    <div className="mt-2">
+                                        <Button
+                                            size="sm"
+                                            className="bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                                            onClick={() => router.push("/profile/verify")}
+                                        >
+                                            Request Verification
+                                        </Button>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
-                    {!verificationPending && (
-                        <>
-                            <ul className="ml-10 space-y-1 text-xs text-muted-foreground list-disc list-inside">
-                                <li>Professional chef badge on your profile</li>
-                                <li>Priority in search results</li>
-                            </ul>
-                            <div className="ml-10">
-                                <Button
-                                    size="sm"
-                                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold"
-                                    onClick={() => router.push("/profile/verify")}
-                                >
-                                    Request Verification
-                                </Button>
-                            </div>
-                        </>
-                    )}
                 </div>
 
                 {/* Error / Success */}

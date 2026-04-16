@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { IconUserPlus, IconUserCheck, IconEdit } from "@tabler/icons-react";
+import { IconUserPlus, IconUserCheck, IconEdit, IconShieldCheckFilled } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { getUserByUsername } from "@/lib/db/userService";
@@ -117,10 +117,12 @@ export default function ProfilePage() {
                     </Avatar>
 
                     <div className="flex-1 min-w-0 space-y-3">
-                        {/* Username + action buttons */}
-                        <div className="flex flex-wrap items-center gap-3">
+                        {/* Username + verified badge */}
+                        <div className="flex flex-wrap items-center gap-2">
                             <h1 className="text-2xl font-bold">@{profileUser.username}</h1>
-                            
+                            {profileUser.verified && (
+                                <IconShieldCheckFilled className="size-5 text-amber-500" title="Verified Chef" />
+                            )}
                         </div>
 
                         {/* Stats */}
