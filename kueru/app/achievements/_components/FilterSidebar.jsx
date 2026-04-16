@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
  */
 export const ACHIEVEMENT_CATEGORIES = [
     "Cooking Streaks",
-    "Cuisine Exploration",
+    "Exploration",
     "Skill Badges",
-    "Milestone",
+    "Milestones",
 ];
 
 /**

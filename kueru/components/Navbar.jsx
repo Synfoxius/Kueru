@@ -26,7 +26,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup, IconBell } from "@tabler/icons-react";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup, IconBell, IconTrophy } from "@tabler/icons-react";
 
 /**
  * Extracts up to two initials from a username string.
@@ -62,7 +62,7 @@ export default function Navbar() {
     }, [user]);
 
     const isRecipeActive = pathname.startsWith("/recipes");
-    const isAchievementsActive = pathname.startsWith("/achievements");
+    const isChallengesActive = pathname.startsWith("/challenges");
     const isForumActive = pathname.startsWith("/forum");
 
     const handleLogout = async () => {
@@ -122,11 +122,11 @@ export default function Navbar() {
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
 
-                            {/* Achievements & Challenges */}
+                            {/* Challenges */}
                             <NavigationMenuItem>
-                                <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} ${isAchievementsActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""}`}>
-                                    <Link href="/achievements">
-                                        Achievements & Challenges
+                                <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} ${isChallengesActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""}`}>
+                                    <Link href="/challenges">
+                                        Challenges
                                     </Link>
                                 </NavigationMenuLink>
                             </NavigationMenuItem>
@@ -182,6 +182,12 @@ export default function Navbar() {
                                     <Link href="/profile" className="cursor-pointer gap-2">
                                         <IconUser className="size-4" />
                                         My Profile
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/achievements" className="cursor-pointer gap-2">
+                                        <IconTrophy className="size-4" />
+                                        Achievements
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
