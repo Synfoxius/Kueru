@@ -66,6 +66,15 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
                 const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
                 await createNotification(targetAuthorId, userId, notifType, targetId);
             }
+    // Notify on new upvotes only (not switches from downvote)
+    if (voteValue === 1 && !existingSnap.exists()) {
+        const targetSnap = await getDoc(targetRef);
+        const targetData = targetSnap.data();
+        const targetAuthorId = targetData?.userId;
+        if (targetAuthorId) {
+            const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
+            const extras = targetType === 'comment' && targetData?.postId ? { postId: targetData.postId } : {};
+            await createNotification(targetAuthorId, userId, notifType, targetId, extras);
         }
     }
 };

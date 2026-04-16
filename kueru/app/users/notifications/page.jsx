@@ -27,12 +27,13 @@ function getInitials(username = "") {
 }
 
 const TYPE_META = {
-    follow:                 { icon: IconUserPlus,      color: "text-primary",         label: (s) => `${s} started following you` },
-    post_upvote:            { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your post` },
-    comment_upvote:         { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your comment` },
-    comment:                { icon: IconMessageCircle,  color: "text-blue-500",        label: (s) => `${s} commented on your post` },
-    verification_approved:  { icon: IconAward,          color: "text-green-500",       label: () => "Your chef verification was approved!" },
-    verification_rejected:  { icon: IconAward,          color: "text-destructive",     label: () => "Your chef verification was not approved." },
+    follow:                 { icon: IconUserPlus,      color: "text-primary",         label: (s) => `${s} started following you`,          getUrl: (_n, sender) => sender ? `/profile/${sender.username}` : null },
+    post_upvote:            { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your forum post`,          getUrl: (n) => n.targetId ? `/forum/${n.targetId}` : null },
+    comment_upvote:         { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your comment`,             getUrl: (n) => n.postId && n.targetId ? `/forum/${n.postId}#comment-${n.targetId}` : (n.targetId ? `/forum/${n.targetId}` : null) },
+    comment:                { icon: IconMessageCircle,  color: "text-blue-500",        label: (s) => `${s} commented on your post`,           getUrl: (n) => n.targetId ? `/forum/${n.targetId}` : null },
+    recipe_upvote:          { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your recipe`,              getUrl: (n) => n.targetId ? `/recipes/${n.targetId}` : null },
+    verification_approved:  { icon: IconAward,          color: "text-green-500",       label: () => "Your chef verification was approved!",   getUrl: () => '/profile/edit' },
+    verification_rejected:  { icon: IconAward,          color: "text-destructive",     label: () => "Your chef verification was not approved.", getUrl: () => '/profile/edit' },
 };
 
 function timeAgo(ts) {
@@ -180,11 +181,16 @@ export default function NotificationsPage() {
                                 const senderName = sender?.username ?? "Someone";
                                 const message = meta.label(senderName);
 
+                                const url = meta.getUrl?.(notif, sender) ?? null;
+
                                 return (
                                     <li key={notif.id}>
                                         <button
                                             className={`w-full flex items-start gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-muted/60 ${!notif.read ? "bg-primary/5" : ""}`}
-                                            onClick={() => !notif.read && handleMarkRead(notif.id)}
+                                            onClick={async () => {
+                                                if (!notif.read) await handleMarkRead(notif.id);
+                                                if (url) router.push(url);
+                                            }}
                                         >
                                             {/* Sender avatar or system icon */}
                                             <div className="relative shrink-0 mt-0.5">

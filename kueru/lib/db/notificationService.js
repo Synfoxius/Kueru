@@ -10,10 +10,11 @@ const NOTIFICATIONS_COLLECTION = 'notifications';
  * Create a notification. No-ops silently if recipient === sender.
  * @param {string} recipientId
  * @param {string|null} senderId
- * @param {'follow'|'post_upvote'|'comment_upvote'|'comment'|'verification_approved'|'verification_rejected'} type
+ * @param {'follow'|'post_upvote'|'comment_upvote'|'comment'|'recipe_upvote'|'verification_approved'|'verification_rejected'} type
  * @param {string|null} targetId
+ * @param {object} extras - optional extra fields stored on the document (e.g. { postId } for comment_upvote)
  */
-export const createNotification = async (recipientId, senderId, type, targetId = null) => {
+export const createNotification = async (recipientId, senderId, type, targetId = null, extras = {}) => {
     if (!recipientId) return;
     if (senderId && recipientId === senderId) return; // never notify yourself
 
@@ -24,6 +25,7 @@ export const createNotification = async (recipientId, senderId, type, targetId =
         targetId: targetId ?? null,
         read: false,
         createdAt: serverTimestamp(),
+        ...extras,
     });
 };
 
