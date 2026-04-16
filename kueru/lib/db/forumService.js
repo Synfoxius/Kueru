@@ -73,6 +73,10 @@ export const deletePost = async (postId) => {
     await deleteDoc(doc(db, FORUM_COLLECTION, postId));
 };
 
+export const reportPost = async (postId) => {
+    await updateDoc(doc(db, FORUM_COLLECTION, postId), { status: "reported" });
+};
+
 export const updatePost = async (postId, content) => {
     await updateDoc(doc(db, FORUM_COLLECTION, postId), {
         content,

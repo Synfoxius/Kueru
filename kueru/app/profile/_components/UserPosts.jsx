@@ -13,10 +13,11 @@ const TABS = [
     { key: "saved", label: "Saved", icon: IconBookmark },
 ];
 
-function UserPosts({ userId, savedPostsId }) {
+function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
     const [activeTab, setActiveTab] = useState("posts");
     const [posts, setPosts] = useState([]);
     const [savedPosts, setSavedPosts] = useState([]);
+    const [localHiddenIds, setLocalHiddenIds] = useState(hiddenPostIds);
     const [comments, setComments] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
     const [loadingComments, setLoadingComments] = useState(true);
@@ -80,6 +81,9 @@ function UserPosts({ userId, savedPostsId }) {
                         <PostCard
                             key={post.id}
                             post={post}
+                            isHidden={localHiddenIds.includes(post.id)}
+                            onHidden={(postId) => setLocalHiddenIds((prev) => [...prev, postId])}
+                            onUnhidden={(postId) => setLocalHiddenIds((prev) => prev.filter((id) => id !== postId))}
                             onSaved={(p) => setSavedPosts((prev) => prev.some((s) => s.id === p.id) ? prev : [p, ...prev])}
                             onUnsaved={(postId) => setSavedPosts((prev) => prev.filter((s) => s.id !== postId))}
                         />
@@ -89,6 +93,9 @@ function UserPosts({ userId, savedPostsId }) {
                         <PostCard
                             key={post.id}
                             post={post}
+                            isHidden={localHiddenIds.includes(post.id)}
+                            onHidden={(postId) => setLocalHiddenIds((prev) => [...prev, postId])}
+                            onUnhidden={(postId) => setLocalHiddenIds((prev) => prev.filter((id) => id !== postId))}
                             onUnsaved={(postId) => setSavedPosts((prev) => prev.filter((p) => p.id !== postId))}
                         />
                     ))}

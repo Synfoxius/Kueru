@@ -8,7 +8,8 @@ import { getUser } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { IconSearch, IconPlus } from "@tabler/icons-react";
+import { IconSearch, IconPlus, IconLayoutSidebar } from "@tabler/icons-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Navbar from "@/components/Navbar";
 
 import RecipeOfTheDay from "./_components/RecipeOfTheDay";
@@ -123,9 +124,7 @@ export default function ForumPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            <div className="h-14 w-full border-b bg-card flex items-center px-6 text-sm text-muted-foreground">
-                <Navbar />
-            </div>
+            <Navbar />
 
             {/* ── Main layout ── */}
             <div className="mx-auto max-w-6xl px-4 py-6 flex gap-6 mb-10">
@@ -136,7 +135,7 @@ export default function ForumPage() {
                     <RecipeOfTheDay />
 
                     {/* Search + sort bar */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <div className="relative flex-1">
                             <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                             <Input
@@ -155,12 +154,43 @@ export default function ForumPage() {
                                 <option key={opt}>{opt}</option>
                             ))}
                         </select>
+                        {/* Mobile: sidebar trigger */}
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon" className="shrink-0 lg:hidden bg-white">
+                                    <IconLayoutSidebar className="size-4" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="w-72 flex flex-col gap-4 overflow-y-auto">
+                                <SheetHeader>
+                                    <SheetTitle>Forum</SheetTitle>
+                                </SheetHeader>
+                                <Link href="/forum/create">
+                                    <Button className="w-full gap-2">
+                                        <IconPlus className="size-4" />
+                                        Create new Post
+                                    </Button>
+                                </Link>
+                                <DevSeedButton />
+                                <TrendingPanel posts={trendingPosts} />
+                                <CategoriesPanel
+                                    categories={categories}
+                                    selectedCategories={selectedCategories}
+                                    onToggle={(category) => {
+                                        setSelectedCategories((prev) => {
+                                            const isSelected = prev.includes(category);
+                                            if (isSelected) { return prev.filter((c) => c !== category); }
+                                            return [...prev, category];
+                                        });
+                                    }}
+                                />
+                            </SheetContent>
+                        </Sheet>
                     </div>
 
                     <Separator />
 
                     {/* Post feed */}
-
                     {displayedPosts.length === 0 && !loading && !error && (
                         <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
                             <div className="flex items-center justify-center size-16 rounded-full bg-muted">
@@ -208,11 +238,8 @@ export default function ForumPage() {
                     )}
                 </div>
 
-                {/* ── Right: sidebar ── */}
-                <aside className="w-64 shrink-0 flex flex-col gap-4">
-
-                    
-                    
+                {/* ── Right: sidebar (desktop only) ── */}
+                <aside className="hidden lg:flex w-64 shrink-0 flex-col gap-4">
                     <Link href="/forum/create">
                         <Button className="w-full gap-2">
                             <IconPlus className="size-4" />
@@ -227,9 +254,7 @@ export default function ForumPage() {
                         onToggle={(category) => {
                             setSelectedCategories((prev) => {
                                 const isSelected = prev.includes(category);
-                                if (isSelected) {
-                                    return prev.filter((c) => c !== category);
-                                }
+                                if (isSelected) { return prev.filter((c) => c !== category); }
                                 return [...prev, category];
                             });
                         }}
