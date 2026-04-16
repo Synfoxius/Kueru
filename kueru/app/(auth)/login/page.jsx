@@ -30,6 +30,7 @@ function LoginForm() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const adminRejected = useRef(false);
+    const disabledRejected = useRef(false);
 
     useEffect(() => {
         if (authLoading || !user || !userDoc) return;
@@ -37,6 +38,13 @@ function LoginForm() {
         if (userDoc.role === "admin") {
             adminRejected.current = true;
             setError("Admin accounts cannot access this app.");
+            logout();
+            return;
+        }
+        if (disabledRejected.current) return;
+        if (userDoc.status === "disabled") {
+            disabledRejected.current = true;
+            setError("Your account has been disabled. Please contact support.");
             logout();
             return;
         }
@@ -54,6 +62,12 @@ function LoginForm() {
             if (userDoc?.role === "admin") {
                 adminRejected.current = true;
                 setError("Admin accounts cannot access this app.");
+                await logout();
+                return;
+            }
+            if (userDoc?.status === "disabled") {
+                disabledRejected.current = true;
+                setError("Your account has been disabled. Please contact support.");
                 await logout();
                 return;
             }
@@ -77,6 +91,12 @@ function LoginForm() {
             if (existingDoc?.role === "admin") {
                 adminRejected.current = true;
                 setError("Admin accounts cannot access this app.");
+                await logout();
+                return;
+            }
+            if (existingDoc?.status === "disabled") {
+                disabledRejected.current = true;
+                setError("Your account has been disabled. Please contact support.");
                 await logout();
                 return;
             }
