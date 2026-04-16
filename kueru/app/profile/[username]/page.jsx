@@ -199,7 +199,7 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="forums">
-                        <UserPosts userId={profileUser.userId} savedPostsId={profileUser.savedPosts} hiddenPostIds={profileUser.hiddenPosts ?? []} />
+                        <UserPosts userId={profileUser.userId} savedPostsId={profileUser.savedPosts} hiddenPostIds={profileUser.hiddenPosts ?? []} isOwnProfile={isOwnProfile} />
                     </TabsContent>
                 </Tabs>
             </main>

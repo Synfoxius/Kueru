@@ -52,17 +52,20 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
         voteType: voteValue,
         votedAt: serverTimestamp(),
     });
-    await updateDoc(targetRef, {
-        [TARGET_FIELD[targetType]]: increment(pointDifference),
-    });
 
-    // Notify on new upvotes only (not switches from downvote)
-    if (voteValue === 1 && !existingSnap.exists()) {
-        const targetSnap = await getDoc(targetRef);
-        const targetAuthorId = targetSnap.data()?.userId;
-        if (targetAuthorId) {
-            const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
-            await createNotification(targetAuthorId, userId, notifType, targetId);
+    const targetSnap = await getDoc(targetRef);
+    if (targetSnap.exists()) {
+        await updateDoc(targetRef, {
+            [TARGET_FIELD[targetType]]: increment(pointDifference),
+        });
+
+        // Notify on upvotes (new or switch from downvote)
+        if (voteValue === 1) {
+            const targetAuthorId = targetSnap.data()?.userId;
+            if (targetAuthorId && targetAuthorId !== userId) {
+                const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
+                await createNotification(targetAuthorId, userId, notifType, targetId);
+            }
         }
     }
 };
@@ -79,7 +82,10 @@ export const removeVote = async (userId, targetId, targetType) => {
 
     const existingVote = existingSnap.data().voteType;
     await deleteDoc(voteRef);
-    await updateDoc(targetRef, {
-        [TARGET_FIELD[targetType]]: increment(-existingVote),
-    });
+    const targetSnap = await getDoc(targetRef);
+    if (targetSnap.exists()) {
+        await updateDoc(targetRef, {
+            [TARGET_FIELD[targetType]]: increment(-existingVote),
+        });
+    }
 };

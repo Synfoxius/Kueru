@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { getPost } from "@/lib/db/forumService";
+import { getUser } from "@/lib/db/userService";
 import { getCommentsByPost, createComment } from "@/lib/db/commentService";
 import { Button } from "@/components/ui/button";
 import { IconMessageCircle, IconSend } from "@tabler/icons-react";
@@ -30,6 +31,15 @@ export default function PostDetailPage({ params }) {
     const [loadingComments, setLoadingComments] = useState(true);
     const [commentText, setCommentText] = useState("");
     const [submittingComment, setSubmittingComment] = useState(false);
+    const [currentUsername, setCurrentUsername] = useState(null);
+
+    useEffect(() => {
+        if (user) {
+            getUser(user.uid).then((u) => {
+                if (u) { setCurrentUsername(u.username); }
+            });
+        }
+    }, [user]);
 
     // ── Fetch post ────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -58,6 +68,7 @@ export default function PostDetailPage({ params }) {
             setCommentText("");
             const updated = await getCommentsByPost(id);
             setComments(updated);
+            setPost((prev) => prev ? { ...prev, commentsCount: (prev.commentsCount ?? 0) + 1 } : prev);
         } finally {
             setSubmittingComment(false);
         }
@@ -91,7 +102,9 @@ export default function PostDetailPage({ params }) {
                     {/* Comments header */}
                     <div className="px-4 sm:px-6 py-4 border-b border-border flex items-center gap-2">
                         <IconMessageCircle className="size-4 text-primary" />
-                        <h2 className="text-sm font-semibold">Comments ({post.commentsCount})</h2>
+                        <h2 className="text-sm font-semibold">
+                            {post.commentsCount ?? 0} {post.commentsCount === 1 ? "Comment" : "Comments"}
+                        </h2>
                     </div>
 
                     {/* Comment input */}
@@ -100,7 +113,7 @@ export default function PostDetailPage({ params }) {
 
                             {/* Avatar */}
                             <div className="flex items-center justify-center size-9 rounded-full bg-primary/10 shrink-0 text-sm font-bold text-primary">
-                                {user.email?.[0].toUpperCase()}
+                                {(currentUsername ?? user.email ?? "?")[0].toUpperCase()}
                             </div>
 
                             {/* Input + submit */}

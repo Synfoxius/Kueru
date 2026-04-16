@@ -32,13 +32,14 @@ export default function CreatePostPage() {
     const [selectedRecipeId, setSelectedRecipeId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    if (loading) {
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push("/login");
+        }
+    }, [loading, user, router]);
+
+    if (loading || !user) {
         return null;
-    }
-    //If user is not logged in, redirect to login page.
-    if (!user) { 
-        router.push("/login"); 
-        return null; 
     }
 
     const postType = selectedRecipeId ? "Recipe" : "Discussion";

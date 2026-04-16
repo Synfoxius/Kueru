@@ -7,13 +7,13 @@ import PostCard from "@/app/(forum)/forum/_components/PostCard";
 import UserCommentCard from "@/app/(forum)/forum/_components/UserCommentCard";
 import { IconFileText, IconMessages, IconBookmark } from "@tabler/icons-react";
 
-const TABS = [
+const ALL_TABS = [
     { key: "posts", label: "Posts", icon: IconFileText },
     { key: "comments", label: "Comments", icon: IconMessages },
     { key: "saved", label: "Saved", icon: IconBookmark },
 ];
 
-function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
+function UserPosts({ userId, savedPostsId, hiddenPostIds = [], isOwnProfile = false }) {
     const [activeTab, setActiveTab] = useState("posts");
     const [posts, setPosts] = useState([]);
     const [savedPosts, setSavedPosts] = useState([]);
@@ -45,6 +45,8 @@ function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
             .finally(() => setLoadingSaved(false));
     }, [userId, savedPostsId]);
 
+    const tabs = isOwnProfile ? ALL_TABS : ALL_TABS.filter((t) => t.key !== "saved");
+
     const isLoading = activeTab === "posts" ? loadingPosts : activeTab === "comments" ? loadingComments : loadingSaved;
     const isEmpty = activeTab === "posts" ? posts.length === 0 : activeTab === "comments" ? comments.length === 0 : savedPosts.length === 0;
 
@@ -52,7 +54,7 @@ function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
         <div className="flex flex-col gap-4">
 
             <div className="flex border-b border-border">
-                {TABS.map(({ key, label, icon: Icon }) => (
+                {tabs.map(({ key, label, icon: Icon }) => (
                     <button
                         key={key}
                         onClick={() => setActiveTab(key)}
@@ -82,6 +84,7 @@ function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
                             key={post.id}
                             post={post}
                             isHidden={localHiddenIds.includes(post.id)}
+                            onDeleted={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
                             onHidden={(postId) => setLocalHiddenIds((prev) => [...prev, postId])}
                             onUnhidden={(postId) => setLocalHiddenIds((prev) => prev.filter((id) => id !== postId))}
                             onSaved={(p) => setSavedPosts((prev) => prev.some((s) => s.id === p.id) ? prev : [p, ...prev])}
@@ -94,6 +97,7 @@ function UserPosts({ userId, savedPostsId, hiddenPostIds = [] }) {
                             key={post.id}
                             post={post}
                             isHidden={localHiddenIds.includes(post.id)}
+                            onDeleted={(postId) => setSavedPosts((prev) => prev.filter((p) => p.id !== postId))}
                             onHidden={(postId) => setLocalHiddenIds((prev) => [...prev, postId])}
                             onUnhidden={(postId) => setLocalHiddenIds((prev) => prev.filter((id) => id !== postId))}
                             onUnsaved={(postId) => setSavedPosts((prev) => prev.filter((p) => p.id !== postId))}

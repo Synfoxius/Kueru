@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 
 function timeAgo(timestamp) {
     if (!timestamp) return "";
@@ -37,6 +38,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
     const handleDelete = async () => {
         await deletePost(post.id);
         setShowDeleteDialog(false);
+        toast.success("Post deleted.");
         if (onDeleted) { onDeleted(post.id); }
     };
     
@@ -89,26 +91,31 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
             await unsavePost(user.uid, post.id);
             setIsSaved(false);
             if (onUnsaved) { onUnsaved(post.id); }
+            toast.success("Post unsaved.");
         } else {
             await savePost(user.uid, post.id);
             setIsSaved(true);
             if (onSaved) { onSaved(post); }
+            toast.success("Post saved.");
         }
     };
 
     const handleReport = async () => {
         await reportPost(post.id);
         setShowReportDialog(false);
+        toast.success("Post reported. Our moderators will review it.");
     };
 
     const handleHide = async () => {
         if (user) { await hidePost(user.uid, post.id); }
         if (onHidden) { onHidden(post.id); }
+        toast.success("Post hidden.");
     };
 
     const handleUnhide = async () => {
         if (user) { await unhidePost(user.uid, post.id); }
         if (onUnhidden) { onUnhidden(post.id); }
+        toast.success("Post unhidden.");
     };
 
     if (isHidden) {

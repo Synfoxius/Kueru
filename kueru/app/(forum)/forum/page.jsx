@@ -86,8 +86,9 @@ export default function ForumPage() {
         }
     };
 
-    const trendingPosts = 
-        [...allPosts]
+    const trendingPosts =
+        allPosts
+        .filter((post) => !hiddenPostIds.includes(post.id))
         .sort((a, b) => (b.upvotesCount ?? 0) - (a.upvotesCount ?? 0))
         .slice(0, 5);
 
@@ -113,10 +114,10 @@ export default function ForumPage() {
                 return b.upvotesCount - a.upvotesCount;
             }
             if (sort === "Newest") {
-                return b.postedDateTime?.seconds - a.postedDateTime?.seconds;
+                return (b.postedDateTime?.seconds ?? 0) - (a.postedDateTime?.seconds ?? 0);
             }
             if (sort === "Most Comments") {
-                return b.commentsCount - a.commentsCount;
+                return (b.commentsCount ?? 0) - (a.commentsCount ?? 0);
             }
             return 0;
         });
@@ -199,7 +200,7 @@ export default function ForumPage() {
                             <div>
                                 <h2 className="text-lg font-semibold text-foreground">No posts found</h2>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    {search || categories.length > 0
+                                    {search || selectedCategories.length > 0
                                         ? "Try adjusting your search or filters"
                                         : "Be the first to start a discussion"}
                                 </p>
