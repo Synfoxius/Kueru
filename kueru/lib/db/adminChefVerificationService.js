@@ -85,10 +85,10 @@ export const updateVerificationStatus = async (verificationId, status, reviewerI
 
         transaction.update(verificationRef, updatePayload);
 
-        // If approved, promote the user to chef and mark as verified
+        // If approved, mark the user as verified
         if (status === 'approved') {
             const userRef = adminDB.collection(USERS_COLLECTION).doc(userId);
-            transaction.update(userRef, { role: 'chef' });
+            transaction.update(userRef, { verified: true });
         }
 
         // Notify the user of the verification outcome
