@@ -28,13 +28,14 @@ function getInitials(username = "") {
 }
 
 const TYPE_META = {
-    follow:                 { icon: IconUserPlus,      color: "text-primary",         label: (s) => `${s} started following you` },
-    post_upvote:            { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your post` },
-    comment_upvote:         { icon: IconThumbUp,        color: "text-amber-500",       label: (s) => `${s} upvoted your comment` },
-    comment:                { icon: IconMessageCircle,  color: "text-blue-500",        label: (s) => `${s} commented on your post` },
-    verification_approved:  { icon: IconAward,          color: "text-green-500",       label: () => "Your chef verification was approved!" },
-    verification_rejected:  { icon: IconAward,          color: "text-destructive",     label: () => "Your chef verification was not approved." },
-    achievement_completed:  { icon: IconTrophy,         color: "text-primary",         label: (_, title) => `Well done! You've completed the "${title}" achievement. Check it out under the Achievement tab.` },
+    follow:                 { icon: IconUserPlus,      color: "text-primary",         label: (s) => `${s} started following you`,                                                        getUrl: (_n, sender) => sender ? `/profile/${sender.username}` : null },
+    post_upvote:            { icon: IconThumbUp,        color: "text-amber-500",       label: (s, n) => `${s} upvoted your post "${n.postTitle ?? 'a post'}"`,                           getUrl: (n) => n.targetId ? `/forum/${n.targetId}` : null },
+    comment_upvote:         { icon: IconThumbUp,        color: "text-amber-500",       label: (s, n) => `${s} upvoted your comment on "${n.postTitle ?? 'a post'}"`,                     getUrl: (n) => n.postId && n.targetId ? `/forum/${n.postId}#comment-${n.targetId}` : (n.targetId ? `/forum/${n.targetId}` : null) },
+    comment:                { icon: IconMessageCircle,  color: "text-blue-500",        label: (s, n) => `${s} commented on "${n.postTitle ?? 'your post'}"`,                          getUrl: (n) => n.targetId ? `/forum/${n.targetId}` : null },
+    recipe_upvote:          { icon: IconThumbUp,        color: "text-amber-500",       label: (s, n) => `${s} upvoted your recipe "${n.recipeName ?? 'a recipe'}"`,                      getUrl: (n) => n.targetId ? `/recipes/${n.targetId}` : null },
+    verification_approved:  { icon: IconAward,          color: "text-green-500",       label: () => "Your chef verification was approved!",                                                getUrl: () => '/profile/edit' },
+    verification_rejected:  { icon: IconAward,          color: "text-destructive",     label: () => "Your chef verification was not approved.",                                            getUrl: () => '/profile/edit' },
+    achievement_completed:  { icon: IconTrophy,         color: "text-primary",         label: (_, title) => `Well done! You've completed the "${title}" achievement. Check it out under the Achievement tab.`,  getUrl: (n) => n.targetId ? `/achievements/${n.targetId}` : null },
 };
 
 function timeAgo(ts) {
@@ -204,18 +205,18 @@ export default function NotificationsPage() {
                                 const sender = notif.senderId ? senderMap[notif.senderId] : null;
                                 const senderName = sender?.username ?? "Someone";
                                 const achievementTitle = achievementsById[notif.targetId]?.title ?? "an achievement";
-                                const message = meta.label(senderName, achievementTitle);
-                                const href = notif.type === 'achievement_completed' && notif.targetId
-                                    ? `/achievements/${notif.targetId}`
-                                    : null;
+                                const message = notif.type === 'achievement_completed'
+                                    ? meta.label(senderName, achievementTitle)
+                                    : meta.label(senderName, notif);
+                                const url = meta.getUrl?.(notif, sender) ?? null;
 
                                 return (
                                     <li key={notif.id}>
                                         <button
                                             className={`w-full flex items-start gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-muted/60 ${!notif.read ? "bg-primary/5" : ""}`}
-                                            onClick={() => {
-                                                if (!notif.read) handleMarkRead(notif.id);
-                                                if (href) router.push(href);
+                                            onClick={async () => {
+                                                if (!notif.read) await handleMarkRead(notif.id);
+                                                if (url) router.push(url);
                                             }}
                                         >
                                             {/* Sender avatar or system icon */}

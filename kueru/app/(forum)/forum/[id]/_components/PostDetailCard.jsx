@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ImageGallery from "./ImageGallery";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 import RecipePreviewCard from "@/app/(forum)/forum/_components/RecipePreviewCard";
 
 function timeAgo(timestamp) {
@@ -74,9 +75,11 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
         if (isSaved) {
             await unsavePost(user.uid, post.id);
             setIsSaved(false);
+            toast.success("Post unsaved.");
         } else {
             await savePost(user.uid, post.id);
             setIsSaved(true);
+            toast.success("Post saved.");
         }
     };
 
@@ -112,6 +115,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
             setCurrentContent(editContent.trim());
             setEditedAt(new Date());
             setIsEditing(false);
+            toast.success("Your post has been edited.");
         } finally {
             setSaving(false);
         }
@@ -120,6 +124,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
     const handleDelete = async () => {
         await deletePost(post.id);
         setShowDeleteDialog(false);
+        toast.success("Post deleted.");
         if (onDeleted) { onDeleted(); }
     };
 

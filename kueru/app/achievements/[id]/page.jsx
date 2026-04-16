@@ -107,8 +107,11 @@ export default function AchievementDetailPage() {
 
     const isCompleted = progress?.status === "completed";
     const currentValue = progress?.currentValue ?? 0;
-    const progressPercent = achievement.goalValue > 0
-        ? Math.min((currentValue / achievement.goalValue) * 100, 100)
+    // exact_match achievements are binary (0 or 1 completion), goalValue is the ingredient
+    // threshold used by the tracker — not the target count shown to the user.
+    const displayGoal = achievement.trackingType === "exact_match" ? 1 : achievement.goalValue;
+    const progressPercent = displayGoal > 0
+        ? Math.min((currentValue / displayGoal) * 100, 100)
         : 0;
     const CategoryIcon = getCategoryIcon(achievement.category);
 
@@ -154,7 +157,7 @@ export default function AchievementDetailPage() {
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Progress</span>
                                 <span className="font-semibold text-primary">
-                                    {currentValue}/{achievement.goalValue}
+                                    {currentValue}/{displayGoal}
                                     {achievement.unit ? ` ${achievement.unit}` : ""}
                                 </span>
                             </div>

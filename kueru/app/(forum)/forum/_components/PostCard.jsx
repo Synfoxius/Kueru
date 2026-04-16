@@ -7,12 +7,13 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUser, hidePost, unhidePost, savePost, unsavePost } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
-import { deletePost } from "@/lib/db/forumService";
+import { deletePost, reportPost } from "@/lib/db/forumService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { toast } from "sonner";
 
 function timeAgo(timestamp) {
     if (!timestamp) return "";
@@ -31,11 +32,13 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
     const [voteCount, setVoteCount] = useState(post.upvotesCount);
     const [userVote, setUserVote] = useState(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
     const handleDelete = async () => {
         await deletePost(post.id);
         setShowDeleteDialog(false);
+        toast.success("Post deleted.");
         if (onDeleted) { onDeleted(post.id); }
     };
     
@@ -88,21 +91,31 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
             await unsavePost(user.uid, post.id);
             setIsSaved(false);
             if (onUnsaved) { onUnsaved(post.id); }
+            toast.success("Post unsaved.");
         } else {
             await savePost(user.uid, post.id);
             setIsSaved(true);
             if (onSaved) { onSaved(post); }
+            toast.success("Post saved.");
         }
+    };
+
+    const handleReport = async () => {
+        await reportPost(post.id);
+        setShowReportDialog(false);
+        toast.success("Post reported. Our moderators will review it.");
     };
 
     const handleHide = async () => {
         if (user) { await hidePost(user.uid, post.id); }
         if (onHidden) { onHidden(post.id); }
+        toast.success("Post hidden.");
     };
 
     const handleUnhide = async () => {
         if (user) { await unhidePost(user.uid, post.id); }
         if (onUnhidden) { onUnhidden(post.id); }
+        toast.success("Post unhidden.");
     };
 
     if (isHidden) {
@@ -122,7 +135,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
 
                 {/* Vote column */}
                 <div
-                    className="flex flex-col items-center justify-center gap-1 shrink-0 w-14 self-stretch"
+                    className="flex flex-col items-center justify-center gap-1 shrink-0 w-10 sm:w-14 self-stretch"
                     style={{ backgroundColor: "#f9f5f3" }}
                 >
                     <button
@@ -143,7 +156,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                 <Separator orientation="vertical" className="h-auto" />
 
                 {/* Content */}
-                <div className="flex flex-1 flex-col gap-1 min-w-0 p-4 pr-10">
+                <div className="flex flex-1 flex-col gap-1 min-w-0 p-3 sm:p-4 pr-10">
 
                     {/* Title */}
                     <Link href={`/forum/${post.id}`} className="font-semibold text-foreground hover:underline line-clamp-2">
@@ -190,7 +203,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                     )}
 
                     {/* Meta */}
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         <span>Posted by <Link href={`/profile/${username ?? post.userId}`} className="text-primary hover:underline">@{username ?? post.userId}</Link></span>
                         <span>·</span>
                         <span>{timeAgo(post.postedDateTime)}</span>
@@ -205,8 +218,8 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
 
                 {/* Thumbnail image */}
                 {image && (
-                    <div className="flex items-center pr-4">
-                        <div className="relative size-20 shrink-0 overflow-hidden rounded-lg">
+                    <div className="flex items-center pr-3 sm:pr-4">
+                        <div className="relative size-16 sm:size-20 shrink-0 overflow-hidden rounded-lg">
                             <Image src={image} alt={post.title} fill sizes="80px" className="object-cover" />
                         </div>
                     </div>
@@ -243,7 +256,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                             {isSaved ? "Unsave" : "Save"}
                         </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem className="gap-2">
+                    <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setShowReportDialog(true)}>
                         <IconFlag className="size-4" /> Report
                     </DropdownMenuItem>
                     <DropdownMenuItem className="gap-2" onClick={handleHide}>
@@ -260,6 +273,15 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                 destructive
                 onConfirm={handleDelete}
                 onCancel={() => setShowDeleteDialog(false)}
+            />
+            <ConfirmDialog
+                open={showReportDialog}
+                title="Report post?"
+                description="This will flag the post for review by our moderators."
+                confirmLabel="Report"
+                destructive
+                onConfirm={handleReport}
+                onCancel={() => setShowReportDialog(false)}
             />
         </Card>
     );

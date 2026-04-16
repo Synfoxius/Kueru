@@ -81,6 +81,49 @@ export const saveRecipe = async (userId, recipeId) => {
     });
 };
 
+/**
+ * Fetch a single recipe by ID.
+ * @param {string} recipeId
+ */
+export const getRecipe = async (recipeId) => {
+    const snap = await adminDB.collection(RECIPES_COLLECTION).doc(recipeId).get();
+    if (!snap.exists) return null;
+    return { id: snap.id, ...snap.data() };
+};
+
+/**
+ * Fetch all recipes, newest first.
+ */
+export const getAllRecipes = async () => {
+    const snap = await adminDB.collection(RECIPES_COLLECTION)
+        .orderBy('createdAt', 'desc')
+        .limit(200)
+        .get();
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+/**
+ * Fetch recipes filtered by status, newest first.
+ * @param {string} status - 'available' | 'pending' | 'deleted' | 'archived'
+ */
+export const getRecipesByStatus = async (status) => {
+    const snap = await adminDB.collection(RECIPES_COLLECTION)
+        .where('status', '==', status)
+        .orderBy('createdAt', 'desc')
+        .limit(200)
+        .get();
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+/**
+ * Update the status of a recipe.
+ * @param {string} recipeId
+ * @param {string} status - 'available' | 'pending' | 'deleted' | 'archived'
+ */
+export const updateRecipeStatus = async (recipeId, status) => {
+    await adminDB.collection(RECIPES_COLLECTION).doc(recipeId).update({ status });
+};
+
 export const unsaveRecipe = async (userId, recipeId) => {
     const recipeRef = adminDB.collection(RECIPES_COLLECTION).doc(recipeId);
     const userSaveRef = adminDB.collection('users').doc(userId).collection('savedRecipes').doc(recipeId);

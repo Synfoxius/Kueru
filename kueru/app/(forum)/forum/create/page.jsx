@@ -32,13 +32,14 @@ export default function CreatePostPage() {
     const [selectedRecipeId, setSelectedRecipeId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    if (loading) {
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push("/login");
+        }
+    }, [loading, user, router]);
+
+    if (loading || !user) {
         return null;
-    }
-    //If user is not logged in, redirect to login page.
-    if (!user) { 
-        router.push("/login"); 
-        return null; 
     }
 
     const postType = selectedRecipeId ? "Recipe" : "Discussion";
@@ -77,9 +78,7 @@ export default function CreatePostPage() {
     return (
         <div className="min-h-screen bg-background">
 
-            <div className="h-14 w-full border-b bg-white flex items-center px-6 text-sm text-muted-foreground">
-                <Navbar />
-            </div>
+            <Navbar />
 
             {/* Back button */}
             <div className="mx-auto max-w-3xl px-4 pt-4">
