@@ -180,13 +180,13 @@ export default function ProfilePage() {
                             value="recipes"
                             className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
                         >
-                            My Recipes
+                            Recipes
                         </TabsTrigger>
                         <TabsTrigger
                             value="forums"
                             className="flex-1 py-3 text-sm font-semibold data-active:bg-transparent data-active:text-primary data-active:border-transparent after:bg-primary"
                         >
-                            My Forums
+                            Forums
                         </TabsTrigger>
                     </TabsList>
 
