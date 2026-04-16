@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
 
 const ACHIEVEMENTS_COLLECTION = 'achievements';
 
@@ -17,6 +17,18 @@ export const getAllAchievements = async () => {
     );
     const snap = await getDocs(q);
     return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+};
+
+/**
+ * Fetches a single achievement definition by its Firestore document ID.
+ *
+ * @param {string} achievementId
+ * @returns {Promise<{ id: string, title: string, description: string, category: string, goalValue: number, unit: string, trackingType: string, condition: object|null, iconURL: string } | null>}
+ */
+export const getAchievementById = async (achievementId) => {
+    const snap = await getDoc(doc(db, ACHIEVEMENTS_COLLECTION, achievementId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() };
 };
 
 /**

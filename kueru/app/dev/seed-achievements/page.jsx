@@ -21,6 +21,7 @@ const ACHIEVEMENTS = [
         goalValue: 1,
         unit: "recipes",
         trackingType: "count",
+        condition: null,
         iconURL: "",
     },
     {
@@ -30,6 +31,7 @@ const ACHIEVEMENTS = [
         goalValue: 10,
         unit: "recipes",
         trackingType: "count",
+        condition: null,
         iconURL: "",
     },
     {
@@ -39,6 +41,7 @@ const ACHIEVEMENTS = [
         goalValue: 50,
         unit: "recipes",
         trackingType: "count",
+        condition: null,
         iconURL: "",
     },
     {
@@ -48,6 +51,7 @@ const ACHIEVEMENTS = [
         goalValue: 3,
         unit: "cuisines",
         trackingType: "unique_count",
+        condition: { type: "unique_cuisine_tags" },
         iconURL: "",
     },
     {
@@ -57,15 +61,17 @@ const ACHIEVEMENTS = [
         goalValue: 5,
         unit: "ingredients",
         trackingType: "exact_match",
+        condition: { type: "exact_ingredient_count" },
         iconURL: "",
     },
     {
         title: "Green Thumb",
-        description: "Post 5 vegan recipes",
+        description: "Post 5 vegan or vegetarian recipes",
         category: "Exploration",
         goalValue: 5,
         unit: "recipes",
         trackingType: "count",
+        condition: { type: "tag_includes_any", values: ["Vegan", "Vegetarian"] },
         iconURL: "",
     },
     {
@@ -75,6 +81,7 @@ const ACHIEVEMENTS = [
         goalValue: 4,
         unit: "Sundays",
         trackingType: "weekly_streak",
+        condition: null,
         iconURL: "",
     },
     {
@@ -84,6 +91,7 @@ const ACHIEVEMENTS = [
         goalValue: 7,
         unit: "days",
         trackingType: "streak",
+        condition: null,
         iconURL: "",
     },
 ];
