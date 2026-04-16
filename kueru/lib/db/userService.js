@@ -120,6 +120,7 @@ export const createUser = async (uid, { email, username, profileImage = '' }) =>
         savedRecipes: [],
         achievementCompleted: {},
         challengesJoined: {},
+        status: 'active',
     });
 };
 

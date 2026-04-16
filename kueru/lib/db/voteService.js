@@ -59,12 +59,28 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
             [TARGET_FIELD[targetType]]: increment(pointDifference),
         });
 
-        // Notify on upvotes (new or switch from downvote)
-        if (voteValue === 1) {
-            const targetAuthorId = targetSnap.data()?.userId;
-            if (targetAuthorId && targetAuthorId !== userId) {
-                const notifType = targetType === 'post' ? 'post_upvote' : 'comment_upvote';
-                await createNotification(targetAuthorId, userId, notifType, targetId);
+        // Notify on new upvotes only (not switches from downvote)
+        if (voteValue === 1 && !existingSnap.exists()) {
+            const targetData = targetSnap.data();
+            const targetAuthorId = targetData?.userId;
+            if (targetAuthorId) {
+                if (targetType === 'post') {
+                    await createNotification(targetAuthorId, userId, 'post_upvote', targetId, {
+                        postTitle: targetData?.title ?? null,
+                    });
+                } else {
+                    // comment — fetch parent post for its title
+                    const postId = targetData?.postId ?? null;
+                    let postTitle = null;
+                    if (postId) {
+                        const postSnap = await getDoc(doc(db, 'forum_posts', postId));
+                        postTitle = postSnap.data()?.title ?? null;
+                    }
+                    await createNotification(targetAuthorId, userId, 'comment_upvote', targetId, {
+                        postId,
+                        postTitle,
+                    });
+                }
             }
         }
     }

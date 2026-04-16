@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
-import { loginWithEmail, loginWithGoogle } from "@/lib/firebase/auth";
+import { loginWithEmail, loginWithGoogle, logout } from "@/lib/firebase/auth";
 import { getUser } from "@/lib/db/userService";
 import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
@@ -21,13 +21,7 @@ function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const returnTo = searchParams.get("returnTo");
-    const { user, onboardingComplete, loading: authLoading } = useAuth();
-
-    useEffect(() => {
-        if (authLoading || !user) return;
-        if (onboardingComplete) router.replace(returnTo || "/profile");
-        else if (onboardingComplete === false || onboardingComplete === null) router.replace("/onboarding");
-    }, [user, onboardingComplete, authLoading, router, returnTo]);
+    const { user, userDoc, onboardingComplete, loading: authLoading } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -35,6 +29,28 @@ function LoginForm() {
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const adminRejected = useRef(false);
+    const disabledRejected = useRef(false);
+
+    useEffect(() => {
+        if (authLoading || !user || !userDoc) return;
+        if (adminRejected.current) return;
+        if (userDoc.role === "admin") {
+            adminRejected.current = true;
+            setError("Admin accounts cannot access this app.");
+            logout();
+            return;
+        }
+        if (disabledRejected.current) return;
+        if (userDoc.status === "disabled") {
+            disabledRejected.current = true;
+            setError("Your account has been disabled. Please contact support.");
+            logout();
+            return;
+        }
+        if (onboardingComplete) router.replace(returnTo || "/profile");
+        else if (onboardingComplete === false || onboardingComplete === null) router.replace("/onboarding");
+    }, [user, userDoc, onboardingComplete, authLoading, router, returnTo]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -43,6 +59,18 @@ function LoginForm() {
         try {
             const { user: loggedInUser } = await loginWithEmail(email, password);
             const userDoc = await getUser(loggedInUser.uid);
+            if (userDoc?.role === "admin") {
+                adminRejected.current = true;
+                setError("Admin accounts cannot access this app.");
+                await logout();
+                return;
+            }
+            if (userDoc?.status === "disabled") {
+                disabledRejected.current = true;
+                setError("Your account has been disabled. Please contact support.");
+                await logout();
+                return;
+            }
             if (!userDoc || !userDoc.onboardingComplete) {
                 router.push("/onboarding");
             } else {
@@ -60,6 +88,18 @@ function LoginForm() {
         try {
             const { user } = await loginWithGoogle();
             const existingDoc = await getUser(user.uid);
+            if (existingDoc?.role === "admin") {
+                adminRejected.current = true;
+                setError("Admin accounts cannot access this app.");
+                await logout();
+                return;
+            }
+            if (existingDoc?.status === "disabled") {
+                disabledRejected.current = true;
+                setError("Your account has been disabled. Please contact support.");
+                await logout();
+                return;
+            }
             if (!existingDoc) {
                 router.push("/onboarding?google=1");
             } else if (existingDoc.onboardingComplete) {
