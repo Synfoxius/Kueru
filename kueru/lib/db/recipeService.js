@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
+import { arrayUnion, arrayRemove, collection, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
 
 const RECIPES_COLLECTION = 'recipes';
@@ -631,7 +631,7 @@ export const getRecipesByIds = async (recipeIds = []) => {
 
     // Return in the same order as the input IDs
     return unique.map((id) => byId[id]).filter(Boolean);
-}
+};
 
 export const getMaxRecipeCookTime = async () => {
     const recipesRef = collection(db, RECIPES_COLLECTION);

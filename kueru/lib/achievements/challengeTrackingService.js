@@ -1,65 +1,62 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getChallengeById, recordChallengeContribution } from '../db/challengeService';
 import { recipeMatchesCondition } from './conditionUtil';
 
 /**
- * Runs all challenge checks after a recipe is posted.
+ * Records a challenge contribution after a recipe is posted.
  * Called client-side immediately after createRecipe() succeeds.
  * Fire-and-forget — the caller should NOT await this.
  *
- * Flow:
- *  1. Fetch all userChallenge docs for this user (the challenges they've joined).
- *  2. Fetch each corresponding challenge definition.
- *  3. For each active, qualifying challenge, record a contribution.
+ * Only runs if the user explicitly linked their recipe to a challenge
+ * via the "Link to Challenge" dropdown in the recipe form (recipe.challengeId is set).
+ * If no challenge was selected, this function exits immediately.
+ *
+ * Legitimacy checks (in order):
+ *  1. recipe.challengeId must be set (user opted in)
+ *  2. User must have joined the challenge (userChallenges doc exists)
+ *  3. Recipe must be posted within the challenge's start/end date window
+ *  4. Recipe must satisfy the challenge's condition (tag checks etc.)
  *
  * @param {string} userId
  * @param {string} recipeId   - the newly created recipe's Firestore ID
- * @param {object} recipe     - the recipe payload (name, tags, ingredients, etc.)
+ * @param {object} recipe     - the recipe payload (name, tags, challengeId, etc.)
  * @param {object} userDoc    - the user's Firestore profile (username, profileImage)
  */
 export async function processChallengesOnRecipePost(userId, recipeId, recipe, userDoc) {
-    // 1. Get all challenges this user has joined
-    const userChallengesSnap = await getDocs(
-        collection(db, 'users', userId, 'userChallenges')
-    );
-    if (userChallengesSnap.empty) return;
+    const challengeId = recipe.challengeId;
+    if (!challengeId) return; // User didn't link to any challenge
 
-    const joined = userChallengesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // 1. Verify the user actually joined this challenge
+    const ucSnap = await getDoc(doc(db, 'users', userId, 'userChallenges', challengeId));
+    if (!ucSnap.exists()) return;
 
-    // 2. Fetch challenge definitions in parallel
-    const challengeDefs = await Promise.all(joined.map((uc) => getChallengeById(uc.id)));
+    // 2. Fetch the challenge definition
+    const challenge = await getChallengeById(challengeId);
+    if (!challenge) return;
 
+    // 3. Check the recipe was posted within the challenge's date window
     const now = new Date();
+    const start = challenge.startDate?.toDate?.() ?? new Date(challenge.startDate);
+    const end = challenge.endDate?.toDate?.() ?? new Date(challenge.endDate);
+    if (now < start || now > end) return;
 
-    // 3. Process each joined challenge
-    await Promise.all(
-        joined.map(async (uc, i) => {
-            const challenge = challengeDefs[i];
-            if (!challenge) return;
+    // 4. Check the recipe satisfies the challenge condition
+    // This prevents gaming — selecting a "Vegetarian" challenge but posting a steak recipe.
+    if (!recipeMatchesCondition(recipe, challenge.condition ?? null)) return;
 
-            // Check that we're within the challenge date window
-            const start = challenge.startDate?.toDate?.() ?? new Date(challenge.startDate);
-            const end = challenge.endDate?.toDate?.() ?? new Date(challenge.endDate);
-            if (now < start || now > end) return;
-
-            // Check that this recipe qualifies under the challenge condition
-            if (!recipeMatchesCondition(recipe, challenge.condition ?? null)) return;
-
-            // Record the contribution
-            try {
-                await recordChallengeContribution(
-                    userId,
-                    challenge.id,
-                    recipeId,
-                    recipe,
-                    userDoc,
-                    challenge.challengeType,
-                    challenge.goalValue
-                );
-            } catch (err) {
-                console.error(`Challenge tracking error for "${challenge.title}":`, err);
-            }
-        })
-    );
+    // All checks passed — record the contribution
+    try {
+        await recordChallengeContribution(
+            userId,
+            challengeId,
+            recipeId,
+            recipe,
+            userDoc,
+            challenge.challengeType,
+            challenge.goalValue
+        );
+    } catch (err) {
+        console.error(`Challenge tracking error for "${challenge.title}":`, err);
+    }
 }

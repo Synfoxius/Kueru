@@ -25,6 +25,7 @@ export const buildRecipePayload = ({
     recipeTags,
     ingredientRows,
     steps,
+    challengeId = null,
 }) => {
     const normalizedName = normalizeName(recipeName);
     const normalizedDescription = normalizeName(description);
@@ -81,6 +82,6 @@ export const buildRecipePayload = ({
         tags: normalizedTags,
         ingredients: ingredientMap,
         steps: normalizedSteps,
-        challengeId: null,
+        challengeId,
     };
 };

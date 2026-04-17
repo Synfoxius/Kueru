@@ -26,22 +26,7 @@ function PostCard({ post, currentUserId }) {
     const isYou = post.userId === currentUserId;
 
     return (
-        <Card className="bg-white overflow-hidden flex flex-col">
-            {/* Recipe image */}
-            <div className="aspect-[4/3] w-full bg-muted overflow-hidden">
-                {post.imageURL ? (
-                    <img
-                        src={post.imageURL}
-                        alt={post.recipeName}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                        No image
-                    </div>
-                )}
-            </div>
-
+        <Card className="bg-white flex flex-col">
             <CardContent className="p-3 flex flex-col gap-2 flex-1">
                 {/* Author */}
                 <div className="flex items-center gap-2">

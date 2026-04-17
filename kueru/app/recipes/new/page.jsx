@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { createRecipe, getRecipe, updateRecipe } from "@/lib/db/recipeService";
 import { processAchievementsOnRecipePost } from "@/lib/achievements/trackingService";
 import { processChallengesOnRecipePost } from "@/lib/achievements/challengeTrackingService";
+import { getAllChallenges, getUserChallenges } from "@/lib/db/challengeService";
 import {
     ALLERGEN_OPTIONS,
     CUISINE_TYPE_OPTIONS,
@@ -26,6 +27,7 @@ import RecipeMediaSection from "./_components/RecipeMediaSection";
 import RecipeMetaSection from "./_components/RecipeMetaSection";
 import IngredientsSection from "./_components/IngredientsSection";
 import StepsSection from "./_components/StepsSection";
+import RecipeChallengeSection from "./_components/RecipeChallengeSection";
 import { buildRecipePayload } from "./_utils/recipePayload";
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -118,12 +120,43 @@ export default function NewRecipePage() {
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [activeChallenges, setActiveChallenges] = useState([]);
+    const [selectedChallengeId, setSelectedChallengeId] = useState("");
+    const [challengesLoading, setChallengesLoading] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) {
             router.push("/login");
         }
     }, [loading, user, router]);
+
+    useEffect(() => {
+        if (!user) return;
+        let isMounted = true;
+        const loadChallenges = async () => {
+            try {
+                const [allChallenges, userChallenges] = await Promise.all([
+                    getAllChallenges(),
+                    getUserChallenges(user.uid),
+                ]);
+                const joinedIds = new Set(userChallenges.map((uc) => uc.challengeId ?? uc.id));
+                const now = Date.now();
+                const active = allChallenges.filter((c) => {
+                    if (!joinedIds.has(c.id)) return false;
+                    const end = c.endDate?.toDate?.() ?? new Date(c.endDate);
+                    const start = c.startDate?.toDate?.() ?? new Date(c.startDate);
+                    return now >= start.getTime() && now <= end.getTime();
+                });
+                if (isMounted) setActiveChallenges(active);
+            } catch {
+                // Non-critical — silently ignore, section won't render
+            } finally {
+                if (isMounted) setChallengesLoading(false);
+            }
+        };
+        loadChallenges();
+        return () => { isMounted = false; };
+    }, [user]);
 
     useEffect(() => {
         let isMounted = true;
@@ -335,6 +368,7 @@ export default function NewRecipePage() {
                 recipeTags: combinedRecipeTags,
                 ingredientRows,
                 steps,
+                challengeId: selectedChallengeId || null,
             });
 
             if (mode === 'edit' && editRecipeId) {
@@ -398,6 +432,13 @@ export default function NewRecipePage() {
                         onRemoveAllergen={(tag) => handleRemoveTag(tag, setAllergens)}
                         onRemoveFoodType={(tag) => handleRemoveTag(tag, setFoodTypes)}
                         onRemoveCuisineType={(tag) => handleRemoveTag(tag, setCuisineTypes)}
+                    />
+
+                    <RecipeChallengeSection
+                        challenges={activeChallenges}
+                        selectedChallengeId={selectedChallengeId}
+                        onSelect={setSelectedChallengeId}
+                        loading={challengesLoading}
                     />
 
                     <RecipeMetaSection
