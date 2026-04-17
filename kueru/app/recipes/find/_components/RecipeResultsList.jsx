@@ -17,7 +17,7 @@ function RecipeCard({ recipe }) {
             <CardContent className="space-y-2 px-4 pt-4 pb-0">
                 <div>
                     <p className="line-clamp-1 text-base font-semibold text-foreground">{recipe?.name || "Untitled Recipe"}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{recipe?.description || "No description provided."}</p>
+                    <p className="line-clamp-1 text-sm text-muted-foreground">by @{recipe?.username || "Unknown"}</p>
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
@@ -34,7 +34,7 @@ function RecipeCard({ recipe }) {
                     </span>
                 </div>
                 <Button asChild className="w-full">
-                    <Link href={`/recipes/find?recipeId=${recipe.id}`}>View Recipe</Link>
+                    <Link href={`/recipes/${recipe.id}`}>View Recipe</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -43,7 +43,7 @@ function RecipeCard({ recipe }) {
 
 export default function RecipeResultsList({ recipes, loading, loadingMore, error, hasMore, onLoadMore }) {
     return (
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-white">
             <CardContent className="space-y-4 p-5">
                 {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

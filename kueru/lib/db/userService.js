@@ -116,8 +116,6 @@ export const createUser = async (uid, { email, username, profileImage = '' }) =>
         bio: '',
         profileImage,
         createdAt: serverTimestamp(),
-        createdRecipes: [],
-        savedRecipes: [],
         achievementCompleted: {},
         challengesJoined: {},
         status: 'active',

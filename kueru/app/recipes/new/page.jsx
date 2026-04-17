@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IconArrowLeft } from "@tabler/icons-react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { createRecipe } from "@/lib/db/recipeService";
+import { createRecipe, getRecipe, updateRecipe } from "@/lib/db/recipeService";
 import { processAchievementsOnRecipePost } from "@/lib/achievements/trackingService";
 import { processChallengesOnRecipePost } from "@/lib/achievements/challengeTrackingService";
 import {
@@ -97,6 +97,9 @@ const getValidationErrors = ({
 
 export default function NewRecipePage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const mode = searchParams.get('mode');
+    const editRecipeId = searchParams.get('recipeId');
     const { user, userDoc, loading } = useAuth();
 
     const [recipeName, setRecipeName] = useState("");
@@ -121,6 +124,87 @@ export default function NewRecipePage() {
             router.push("/login");
         }
     }, [loading, user, router]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const checkArchivedStatus = async () => {
+            if (mode === 'edit' && editRecipeId) {
+                try {
+                    const recipeData = await getRecipe(editRecipeId);
+                    if (isMounted && recipeData) {
+                        if (recipeData.status === 'archived' || recipeData.status === 'deleted') {
+                            router.push('/recipes/discover');
+                            return;
+                        }
+
+                        setRecipeName(recipeData.name || "");
+                        setDescription(recipeData.description || "");
+                        setCookTime(String(recipeData.time || 25));
+                        setServings(String(recipeData.servings || 1));
+                        const parsedMedia = (recipeData.images || []).map((url) => {
+                            const filePart = url.split('%2F').pop()?.split('?')[0] || "media";
+                            const decodedName = decodeURIComponent(filePart);
+                            const name = decodedName.replace(/^\d+_/, '') || "Uploaded Media";
+                            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
+                            
+                            return {
+                                id: createId(),
+                                name,
+                                type: isVideo ? "video" : "image",
+                                url,
+                            };
+                        });
+                        setMediaItems(parsedMedia);
+
+                        const backendTags = recipeData.tags || [];
+                        setAllergens(backendTags.filter((t) => ALLERGEN_OPTIONS.includes(t)));
+                        setFoodTypes(backendTags.filter((t) => FOOD_TYPE_OPTIONS.includes(t) || (!ALLERGEN_OPTIONS.includes(t) && !CUISINE_TYPE_OPTIONS.includes(t))));
+                        setCuisineTypes(backendTags.filter((t) => CUISINE_TYPE_OPTIONS.includes(t)));
+
+                        const parsedIngredients = [];
+                        if (recipeData.ingredients) {
+                            for (const [name, val] of Object.entries(recipeData.ingredients)) {
+                                parsedIngredients.push({
+                                    id: createId(),
+                                    name,
+                                    amount: String(val[0]),
+                                    unit: val[1],
+                                });
+                            }
+                        }
+                        if (parsedIngredients.length === 0) {
+                            parsedIngredients.push(createInitialIngredient());
+                        }
+                        setIngredientRows(parsedIngredients);
+
+                        const parsedSteps = [];
+                        if (Array.isArray(recipeData.steps)) {
+                            recipeData.steps.forEach((step) => {
+                                parsedSteps.push({
+                                    id: createId(),
+                                    instruction: step.instruction || "",
+                                    ingredientNames: Object.keys(step.ingredients || {}),
+                                });
+                            });
+                        }
+                        if (parsedSteps.length === 0) {
+                            parsedSteps.push(createInitialStep());
+                        }
+                        setSteps(parsedSteps);
+                    }
+                } catch (e) {
+                    // Ignore, let other things handle it
+                }
+            }
+        };
+
+        checkArchivedStatus();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [mode, editRecipeId, router]);
 
     const availableIngredients = useMemo(() => {
         const deduped = new Set();
@@ -253,10 +337,15 @@ export default function NewRecipePage() {
                 steps,
             });
 
-            const { recipeId } = await createRecipe(payload);
-            processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
-            processChallengesOnRecipePost(user.uid, recipeId, payload, userDoc).catch(console.error);
-            router.push("/recipes/find");
+            if (mode === 'edit' && editRecipeId) {
+                await updateRecipe(editRecipeId, payload);
+                router.push(`/recipes/${editRecipeId}`);
+            } else {
+                const { recipeId } = await createRecipe(payload);
+                processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
+                processChallengesOnRecipePost(user.uid, recipeId, payload, userDoc).catch(console.error);
+                router.push("/recipes/find");
+            }
         } catch (error) {
             setSubmitError(error?.message ?? "Unable to create recipe. Please try again.");
         } finally {

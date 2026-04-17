@@ -106,6 +106,8 @@ export default function NotificationsPage() {
             ]);
             setSenderMap(senders);
             setAchievementsById(achievements);
+        } catch (err) {
+            console.error('[Notifications] Failed to load:', err);
         } finally {
             setPageLoading(false);
         }

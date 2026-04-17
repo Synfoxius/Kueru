@@ -9,7 +9,7 @@ const SORT_FIELDS = [
 
 export default function SortControls({ sortField, sortDirection, onSortFieldChange, onSortDirectionChange }) {
     return (
-        <div className="grid gap-3 rounded-md border border-border bg-card p-4 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-md border border-border bg-white p-4 sm:grid-cols-2">
             <div className="space-y-1">
                 <Label htmlFor="sort-field">Sort By</Label>
                 <select

@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconSearch } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { getAllRecipes, getAvailableRecipeIngredients, getAvailableRecipeTags } from "@/lib/db/recipeService";
+import { getAllRecipes, getAvailableRecipeIngredients, getAvailableRecipeTags, getMaxRecipeCookTime } from "@/lib/db/recipeService";
 import RecipeFiltersPanel from "./_components/RecipeFiltersPanel";
 import SortControls from "./_components/SortControls";
 import ActiveFiltersBar from "./_components/ActiveFiltersBar";
@@ -100,7 +103,7 @@ const toDbFilters = (filters) => ({
     sortDirection: filters.sortDirection,
 });
 
-const toQueryString = (filters) => {
+const toQueryString = (filters, maxCookTime = 240) => {
     const params = new URLSearchParams();
 
     if (filters.searchTerm) params.set("searchTerm", filters.searchTerm);
@@ -116,8 +119,8 @@ const toQueryString = (filters) => {
         params.set("onboardingExcludedAllergies", filters.onboardingExcludedAllergies.join(","));
     }
 
-    if (filters.timeRange[0] !== DEFAULT_TIME_RANGE[0]) params.set("minTime", String(filters.timeRange[0]));
-    if (filters.timeRange[1] !== DEFAULT_TIME_RANGE[1]) params.set("maxTime", String(filters.timeRange[1]));
+    if (filters.timeRange[0] !== 0) params.set("minTime", String(filters.timeRange[0]));
+    if (filters.timeRange[1] !== maxCookTime && filters.timeRange[1] !== 240) params.set("maxTime", String(filters.timeRange[1]));
 
     if (filters.minServings !== "") params.set("minServings", String(filters.minServings));
     if (filters.maxServings !== "") params.set("maxServings", String(filters.maxServings));
@@ -135,15 +138,18 @@ export default function FindRecipesPage() {
     const { user, userDoc } = useAuth();
     const initialFiltersRef = useRef(null);
     const appliedAllergyDefaultsForUserRef = useRef(null);
+    const hasMaxTimeParamRef = useRef(toNumericOrNull(searchParams.get("maxTime")) !== null);
 
     if (!initialFiltersRef.current) {
         initialFiltersRef.current = parseInitialFilters(searchParams);
     }
 
     const [filters, setFilters] = useState(initialFiltersRef.current);
+    const [appliedFilters, setAppliedFilters] = useState(initialFiltersRef.current);
     const [recipes, setRecipes] = useState([]);
     const [availableTags, setAvailableTags] = useState([]);
     const [availableIngredients, setAvailableIngredients] = useState([]);
+    const [maxCookTime, setMaxCookTime] = useState(240);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState("");
@@ -165,7 +171,7 @@ export default function FindRecipesPage() {
         [onboarding?.recipeInterests]
     );
 
-    const dbFilters = useMemo(() => toDbFilters(filters), [filters]);
+    const dbFilters = useMemo(() => toDbFilters(appliedFilters), [appliedFilters]);
 
     useEffect(() => {
         if (!user?.uid) {
@@ -197,9 +203,10 @@ export default function FindRecipesPage() {
 
         const loadFilterMetadata = async () => {
             try {
-                const [tags, ingredients] = await Promise.all([
+                const [tags, ingredients, fetchedMaxTime] = await Promise.all([
                     getAvailableRecipeTags(),
                     getAvailableRecipeIngredients(),
+                    getMaxRecipeCookTime(),
                 ]);
 
                 if (!isMounted) {
@@ -208,6 +215,18 @@ export default function FindRecipesPage() {
 
                 setAvailableTags(tags || []);
                 setAvailableIngredients(ingredients || []);
+                setMaxCookTime(fetchedMaxTime);
+
+                if (!hasMaxTimeParamRef.current) {
+                    setFilters((prev) => ({
+                        ...prev,
+                        timeRange: [Math.min(prev.timeRange[0], fetchedMaxTime), fetchedMaxTime],
+                    }));
+                    setAppliedFilters((prev) => ({
+                        ...prev,
+                        timeRange: [Math.min(prev.timeRange[0], fetchedMaxTime), fetchedMaxTime],
+                    }));
+                }
             } catch (metadataError) {
                 if (isMounted) {
                     setError(metadataError?.message || "Unable to load filter metadata.");
@@ -223,7 +242,7 @@ export default function FindRecipesPage() {
     }, []);
 
     useEffect(() => {
-        const queryString = toQueryString(filters);
+        const queryString = toQueryString(appliedFilters, maxCookTime);
         router.replace(queryString ? `/recipes/find?${queryString}` : "/recipes/find", { scroll: false });
 
         const requestId = ++requestIdRef.current;
@@ -254,7 +273,7 @@ export default function FindRecipesPage() {
         };
 
         loadRecipes();
-    }, [dbFilters, filters, router]);
+    }, [dbFilters, appliedFilters, router]);
 
     const handleLoadMore = useCallback(async () => {
         if (!lastDoc || loadingMore) {
@@ -299,26 +318,77 @@ export default function FindRecipesPage() {
                         filters={filters}
                         availableTags={availableTags}
                         availableIngredients={availableIngredients}
+                        maxCookTime={maxCookTime}
                         showOnboardingFilters={Boolean(user)}
                         onboardingDietaryOptions={onboardingDietaryOptions}
                         onboardingAllergyOptions={onboardingAllergyOptions}
                         onboardingInterestOptions={onboardingInterestOptions}
                         onFiltersChange={setFilters}
-                        onReset={() => setFilters({ ...DEFAULT_FILTERS })}
+                        onApply={() => setAppliedFilters(filters)}
+                        onReset={() => {
+                            const resetState = { ...DEFAULT_FILTERS, timeRange: [0, maxCookTime] };
+                            setFilters(resetState);
+                            setAppliedFilters(resetState);
+                        }}
                     />
 
                     <div className="space-y-4">
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                setAppliedFilters((previous) => ({
+                                    ...previous,
+                                    searchTerm: filters.searchTerm,
+                                }));
+                            }}
+                            className="relative"
+                        >
+                            <Input
+                                value={filters.searchTerm}
+                                onChange={(event) =>
+                                    setFilters((previous) => ({
+                                        ...previous,
+                                        searchTerm: event.target.value,
+                                    }))
+                                }
+                                placeholder="Search by name or description..."
+                                className="w-full bg-white pr-12"
+                            />
+                            <Button
+                                type="submit"
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-1.5 top-1/2 h-8 w-8 -translate-y-1/2"
+                            >
+                                <IconSearch className="size-4" />
+                            </Button>
+                        </form>
+
                         <SortControls
-                            sortField={filters.sortField}
-                            sortDirection={filters.sortDirection}
-                            onSortFieldChange={(value) => setFilters((previous) => ({ ...previous, sortField: value }))}
-                            onSortDirectionChange={(value) => setFilters((previous) => ({ ...previous, sortDirection: value }))}
+                            sortField={appliedFilters.sortField}
+                            sortDirection={appliedFilters.sortDirection}
+                            onSortFieldChange={(value) => {
+                                setFilters((previous) => ({ ...previous, sortField: value }));
+                                setAppliedFilters((previous) => ({ ...previous, sortField: value }));
+                            }}
+                            onSortDirectionChange={(value) => {
+                                setFilters((previous) => ({ ...previous, sortDirection: value }));
+                                setAppliedFilters((previous) => ({ ...previous, sortDirection: value }));
+                            }}
                         />
 
                         <ActiveFiltersBar
-                            filters={filters}
-                            onFiltersChange={setFilters}
-                            onReset={() => setFilters({ ...DEFAULT_FILTERS })}
+                            filters={appliedFilters}
+                            maxCookTime={maxCookTime}
+                            onFiltersChange={(updater) => {
+                                setFilters(updater);
+                                setAppliedFilters(updater);
+                            }}
+                            onReset={() => {
+                                const resetState = { ...DEFAULT_FILTERS, timeRange: [0, maxCookTime] };
+                                setFilters(resetState);
+                                setAppliedFilters(resetState);
+                            }}
                         />
 
                         <RecipeResultsList
