@@ -17,7 +17,7 @@ const getInitials = (username) => {
 
 export default function DiscoverUserCard({ user }) {
     const displayName = user?.username || "Unknown User";
-    const profileHref = user?.id ? `/profile?userId=${user.id}` : "/profile";
+    const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
     const recipeCount = Array.isArray(user?.createdRecipes) ? user.createdRecipes.length : Number(user?.createdRecipesCount ?? 0);
 
     return (

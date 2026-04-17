@@ -1,6 +1,7 @@
 import { db } from '../firebase/config';
 import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
+import { getFollowing } from './followService';
 
 const RECIPES_COLLECTION = 'recipes';
 const DEFAULT_SORT_FIELD = 'createdAt';
@@ -88,7 +89,6 @@ const normalizeStepArray = (value, normalizedIngredients) => {
 const normalizeFilters = (filters = {}) => {
     const searchTerm = String(filters.searchTerm ?? filters.search ?? '').trim();
     const tags = normalizeStringArray(filters.tags);
-    const ingredients = normalizeStringArray(filters.ingredients);
     const onboardingDietaryPreferences = normalizeStringArray(filters.onboardingDietaryPreferences);
     const onboardingRecipeInterests = normalizeStringArray(filters.onboardingRecipeInterests);
     const onboardingExcludedAllergies = normalizeStringArray(filters.onboardingExcludedAllergies);
@@ -105,7 +105,6 @@ const normalizeFilters = (filters = {}) => {
     return {
         searchTerm,
         tags,
-        ingredients,
         onboardingDietaryPreferences,
         onboardingRecipeInterests,
         onboardingExcludedAllergies,
@@ -117,6 +116,7 @@ const normalizeFilters = (filters = {}) => {
         sortField,
         sortDirection,
         verification,
+        followedByUserId: filters.followedByUserId || null,
     };
 };
 
@@ -237,14 +237,6 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
         }
     }
 
-    if (filters.ingredients.length > 0) {
-        const recipeIngredientKeys = Object.keys(recipe.ingredients ?? {}).map((key) => key.toLowerCase());
-        const hasAllIngredients = filters.ingredients.every((ingredient) => recipeIngredientKeys.includes(ingredient.toLowerCase()));
-        if (!hasAllIngredients) {
-            return false;
-        }
-    }
-
     if (filters.onboardingExcludedAllergies.length > 0) {
         const recipeIngredientSet = normalizeLowercaseSet(Object.keys(recipe.ingredients ?? {}));
         const excludedAllergySet = normalizeLowercaseSet(filters.onboardingExcludedAllergies);
@@ -283,6 +275,12 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
         }
 
         if (filters.verification === 'verified_excluded' && isVerified) {
+            return false;
+        }
+    }
+
+    if (filters.followedUserIds) {
+        if (!filters.followedUserIds.has(recipe.userId)) {
             return false;
         }
     }
@@ -457,6 +455,11 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
     const targetCount = Math.max(1, limitCount);
     const pageLimit = Math.max(targetCount * 3, 20);
 
+    if (normalizedFilters.followedByUserId) {
+        const follows = await getFollowing(normalizedFilters.followedByUserId);
+        normalizedFilters.followedUserIds = new Set(follows.map((f) => f.followingId));
+    }
+
     const collectedRecipes = [];
     let cursor = lastDoc;
     let resultingLastDoc;
@@ -579,24 +582,6 @@ export const getAvailableRecipeTags = async () => {
     });
 
     return [...tagSet].sort((leftTag, rightTag) => leftTag.localeCompare(rightTag));
-};
-
-export const getAvailableRecipeIngredients = async () => {
-    const docs = await scanRecipesForMetadata();
-    const ingredientSet = new Set();
-
-    docs.forEach((recipeDoc) => {
-        const ingredients = recipeDoc.data().ingredients;
-        if (ingredients && typeof ingredients === 'object') {
-            Object.keys(ingredients).forEach((ingredient) => {
-                if (ingredient) {
-                    ingredientSet.add(ingredient);
-                }
-            });
-        }
-    });
-
-    return [...ingredientSet].sort((leftIngredient, rightIngredient) => leftIngredient.localeCompare(rightIngredient));
 };
 
 export const getMaxRecipeCookTime = async () => {

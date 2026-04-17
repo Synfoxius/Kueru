@@ -31,18 +31,6 @@ export default function ActiveFiltersBar({ filters, maxCookTime = 240, onFilters
         });
     });
 
-    filters.ingredients.forEach((ingredient) => {
-        chips.push({
-            key: `ingredient-${ingredient}`,
-            label: `Ingredient: ${ingredient}`,
-            onRemove: () =>
-                onFiltersChange((previous) => ({
-                    ...previous,
-                    ingredients: previous.ingredients.filter((item) => item !== ingredient),
-                })),
-        });
-    });
-
     if (filters.verification !== "include_all") {
         const verificationLabel =
             filters.verification === "verified_only" ? "Verified Chefs Only" : "Verified Chefs Excluded";
@@ -50,6 +38,14 @@ export default function ActiveFiltersBar({ filters, maxCookTime = 240, onFilters
             key: "verification",
             label: verificationLabel,
             onRemove: () => onFiltersChange((previous) => ({ ...previous, verification: "include_all" })),
+        });
+    }
+
+    if (filters.followedByUserId) {
+        chips.push({
+            key: "followed",
+            label: "Followed Users Only",
+            onRemove: () => onFiltersChange((previous) => ({ ...previous, followedByUserId: null })),
         });
     }
 

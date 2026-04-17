@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { getAllRecipes, getAvailableRecipeIngredients, getAvailableRecipeTags, getMaxRecipeCookTime } from "@/lib/db/recipeService";
+import { getAllRecipes, getAvailableRecipeTags, getMaxRecipeCookTime } from "@/lib/db/recipeService";
 import RecipeFiltersPanel from "./_components/RecipeFiltersPanel";
 import SortControls from "./_components/SortControls";
 import ActiveFiltersBar from "./_components/ActiveFiltersBar";
@@ -18,7 +18,6 @@ const DEFAULT_TIME_RANGE = [0, 240];
 const DEFAULT_FILTERS = {
     searchTerm: "",
     tags: [],
-    ingredients: [],
     onboardingDietaryPreferences: [],
     onboardingRecipeInterests: [],
     onboardingExcludedAllergies: [],
@@ -28,6 +27,7 @@ const DEFAULT_FILTERS = {
     verification: "include_all",
     sortField: "createdAt",
     sortDirection: "desc",
+    followedByUserId: null,
 };
 
 const parseDelimitedList = (value) => {
@@ -72,7 +72,6 @@ const parseInitialFilters = (searchParams) => {
     return {
         searchTerm: searchParams.get("searchTerm") || "",
         tags: parseDelimitedList(searchParams.get("tags")),
-        ingredients: parseDelimitedList(searchParams.get("ingredients")),
         onboardingDietaryPreferences: parseDelimitedList(searchParams.get("onboardingDietary")),
         onboardingRecipeInterests: parseDelimitedList(searchParams.get("onboardingInterests")),
         onboardingExcludedAllergies: parseDelimitedList(searchParams.get("onboardingExcludedAllergies")),
@@ -84,13 +83,13 @@ const parseInitialFilters = (searchParams) => {
             : "include_all",
         sortField: ["createdAt", "upvotes", "time", "servings"].includes(sortField) ? sortField : "createdAt",
         sortDirection: sortDirection === "asc" ? "asc" : "desc",
+        followedByUserId: searchParams.get("followedByUserId") || null,
     };
 };
 
 const toDbFilters = (filters) => ({
     searchTerm: filters.searchTerm,
     tags: filters.tags,
-    ingredients: filters.ingredients,
     onboardingDietaryPreferences: filters.onboardingDietaryPreferences,
     onboardingRecipeInterests: filters.onboardingRecipeInterests,
     onboardingExcludedAllergies: filters.onboardingExcludedAllergies,
@@ -101,15 +100,15 @@ const toDbFilters = (filters) => ({
     verification: filters.verification,
     sortField: filters.sortField,
     sortDirection: filters.sortDirection,
+    followedByUserId: filters.followedByUserId,
 });
 
 const toQueryString = (filters, maxCookTime = 240) => {
     const params = new URLSearchParams();
 
     if (filters.searchTerm) params.set("searchTerm", filters.searchTerm);
-    if (filters.tags.length > 0) params.set("tags", filters.tags.join(","));
-    if (filters.ingredients.length > 0) params.set("ingredients", filters.ingredients.join(","));
-    if (filters.onboardingDietaryPreferences.length > 0) {
+    if (filters.tags?.length > 0) params.set("tags", filters.tags.join(","));
+    if (filters.onboardingDietaryPreferences?.length > 0) {
         params.set("onboardingDietary", filters.onboardingDietaryPreferences.join(","));
     }
     if (filters.onboardingRecipeInterests.length > 0) {
@@ -128,6 +127,7 @@ const toQueryString = (filters, maxCookTime = 240) => {
     if (filters.verification !== "include_all") params.set("verification", filters.verification);
     if (filters.sortField !== "createdAt") params.set("sortField", filters.sortField);
     if (filters.sortDirection !== "desc") params.set("sortDirection", filters.sortDirection);
+    if (filters.followedByUserId) params.set("followedByUserId", filters.followedByUserId);
 
     return params.toString();
 };
@@ -148,7 +148,6 @@ export default function FindRecipesPage() {
     const [appliedFilters, setAppliedFilters] = useState(initialFiltersRef.current);
     const [recipes, setRecipes] = useState([]);
     const [availableTags, setAvailableTags] = useState([]);
-    const [availableIngredients, setAvailableIngredients] = useState([]);
     const [maxCookTime, setMaxCookTime] = useState(240);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -203,9 +202,8 @@ export default function FindRecipesPage() {
 
         const loadFilterMetadata = async () => {
             try {
-                const [tags, ingredients, fetchedMaxTime] = await Promise.all([
+                const [tags, fetchedMaxTime] = await Promise.all([
                     getAvailableRecipeTags(),
-                    getAvailableRecipeIngredients(),
                     getMaxRecipeCookTime(),
                 ]);
 
@@ -214,7 +212,6 @@ export default function FindRecipesPage() {
                 }
 
                 setAvailableTags(tags || []);
-                setAvailableIngredients(ingredients || []);
                 setMaxCookTime(fetchedMaxTime);
 
                 if (!hasMaxTimeParamRef.current) {
@@ -317,9 +314,10 @@ export default function FindRecipesPage() {
                     <RecipeFiltersPanel
                         filters={filters}
                         availableTags={availableTags}
-                        availableIngredients={availableIngredients}
                         maxCookTime={maxCookTime}
                         showOnboardingFilters={Boolean(user)}
+                        isAuthenticated={Boolean(user)}
+                        currentUserId={user?.uid}
                         onboardingDietaryOptions={onboardingDietaryOptions}
                         onboardingAllergyOptions={onboardingAllergyOptions}
                         onboardingInterestOptions={onboardingInterestOptions}

@@ -28,7 +28,9 @@ function RecipeCard({ recipe }) {
                         <IconUsers className="size-3.5" />
                         {Number(recipe?.servings ?? 0)} servings
                     </span>
-                    <span className="inline-flex items-center gap-1">
+                </div>
+                <div className="flex text-xs text-muted-foreground mt-1">
+                    <span className="inline-flex items-center gap-1 font-medium">
                         <IconArrowBigUp className="size-3.5" />
                         {formatCount(recipe?.upvotes)} upvotes
                     </span>
