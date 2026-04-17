@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { IconUserPlus, IconUserCheck, IconEdit, IconShieldCheckFilled } from "@tabler/icons-react";
+import { IconUserPlus, IconUserCheck, IconEdit, IconShieldCheckFilled, IconFlag, IconDotsVertical } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { getUserByUsername } from "@/lib/db/userService";
 import { getRecipesByUser } from "@/lib/db/recipeService";
 import { checkIfFollowing, followUser, unfollowUser } from "@/lib/db/followService";
+import { createReport } from "@/lib/db/reportService";
+import ReportDialog from "@/components/ReportDialog";
+import { toast } from "sonner";
 
 import Link from "next/link";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
@@ -16,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import UserPosts from "@/app/profile/_components/UserPosts";
 import { getInitials } from "@/app/profile/_components/getInitials";
@@ -32,6 +36,7 @@ export default function ProfilePage() {
     const [followLoading, setFollowLoading] = useState(false);
     const [notFound, setNotFound] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
 
     useEffect(() => {
         if (authLoading) return;
@@ -58,6 +63,12 @@ export default function ProfilePage() {
     }, [username, authLoading, currentUser]);
 
     const isOwnProfile = currentUser?.uid === profileUser?.userId;
+
+    const handleReport = async (reason, details) => {
+        await createReport(profileUser.userId, "user", currentUser.uid, reason, details);
+        setShowReportDialog(false);
+        toast.success("User reported. Our moderators will review it.");
+    };
 
     const handleFollowToggle = async () => {
         if (!currentUser) { router.push("/login"); return; }
@@ -106,7 +117,26 @@ export default function ProfilePage() {
                 <main className="w-full px-8 sm:px-12 lg:px-20 py-8">
 
                 {/* Profile header */}
-                <div className="flex items-center gap-8">
+                <div className="relative flex items-center gap-8">
+                    {!isOwnProfile && currentUser && (
+                        <div className="absolute top-0 right-0">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="size-8 text-muted-foreground">
+                                        <IconDotsVertical className="size-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive gap-2"
+                                        onClick={() => setShowReportDialog(true)}
+                                    >
+                                        <IconFlag className="size-4" /> Report User
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    )}
                     <Avatar className="size-32 shrink-0 text-4xl font-bold">
                         {profileUser.profileImage
                             ? <AvatarImage src={profileUser.profileImage} alt={profileUser.username} />
@@ -148,7 +178,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                <div className="flex justify-center py-4">
+                <div className="flex justify-center gap-2 py-4">
                     {isOwnProfile ? (
                         <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => router.push("/profile/edit")}>
                             <IconEdit className="size-4" /> Edit Profile
@@ -224,6 +254,14 @@ export default function ProfilePage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <ReportDialog
+                open={showReportDialog}
+                onCancel={() => setShowReportDialog(false)}
+                onSubmit={handleReport}
+                title="Report user"
+                description={`Help us understand what's wrong with @${profileUser?.username}.`}
+            />
         </>
     );
 }

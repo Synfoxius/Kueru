@@ -1,9 +1,6 @@
 import { db } from '../firebase/config';
-<<<<<<< HEAD
-import { arrayUnion, collection, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch } from 'firebase/firestore';
-=======
+// import { arrayUnion, collection, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
->>>>>>> origin/feature/recipes
 import { getUsersByIds } from './userService';
 
 const RECIPES_COLLECTION = 'recipes';
@@ -635,6 +632,8 @@ export const getRecipesByIds = async (recipeIds = []) => {
 
     // Return in the same order as the input IDs
     return unique.map((id) => byId[id]).filter(Boolean);
+};
+
 export const getMaxRecipeCookTime = async () => {
     const recipesRef = collection(db, RECIPES_COLLECTION);
     const q = query(recipesRef, orderBy('time', 'desc'), limit(1));
