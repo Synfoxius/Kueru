@@ -9,6 +9,7 @@ import {
     IconArrowLeft,
     IconBookmark,
     IconShare,
+    IconFlag,
 } from "@tabler/icons-react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { getRecipe, deleteRecipe } from "@/lib/db/recipeService";
+import { createReport } from "@/lib/db/reportService";
 import RecipeIngredientsPanel from "./_components/RecipeIngredientsPanel";
 import RecipeInfoPanel from "./_components/RecipeInfoPanel";
 import RecipeMediaCarousel from "./_components/RecipeMediaCarousel";
@@ -45,6 +50,14 @@ export default function RecipeDetailPage() {
     const [desiredServings, setDesiredServings] = useState(1);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    
+    // Report state
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [reportDetails, setReportDetails] = useState("");
+    const [isReporting, setIsReporting] = useState(false);
+    const [isReportSuccess, setIsReportSuccess] = useState(false);
+    const [reportError, setReportError] = useState("");
 
     useEffect(() => {
         let isMounted = true;
@@ -159,6 +172,27 @@ export default function RecipeDetailPage() {
             setShowDeleteConfirm(false);
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleReport = async () => {
+        if (!user) {
+            setShowLoginDialog(true);
+            return;
+        }
+        if (!reportReason) {
+            return;
+        }
+
+        setIsReporting(true);
+        setReportError("");
+        try {
+            await createReport(recipeId, 'recipe', user.uid, reportReason, reportDetails);
+            setIsReportSuccess(true);
+        } catch (err) {
+            setReportError("Failed to submit report. Please try again.");
+        } finally {
+            setIsReporting(false);
         }
     };
 
@@ -307,6 +341,17 @@ export default function RecipeDetailPage() {
                                 Share
                             </Button>
 
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive" 
+                                onClick={() => user ? setShowReportModal(true) : setShowLoginDialog(true)} 
+                                disabled={isWorking || recipe?.status === "deleted"}
+                            >
+                                <IconFlag className="size-4" />
+                                Report
+                            </Button>
+
                             {feedback ? <p className="text-xs text-muted-foreground">{feedback}</p> : null}
                         </CardContent>
                     </Card>
@@ -345,6 +390,75 @@ export default function RecipeDetailPage() {
                         <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
                             {isDeleting ? "Deleting..." : "Delete"}
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showReportModal} onOpenChange={(open) => {
+                setShowReportModal(open);
+                if (!open) {
+                    setTimeout(() => {
+                        setReportReason("");
+                        setReportDetails("");
+                        setIsReportSuccess(false);
+                        setReportError("");
+                    }, 300);
+                }
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{isReportSuccess ? "Report Submitted" : "Report Recipe"}</DialogTitle>
+                        <DialogDescription>
+                            {isReportSuccess
+                                ? "Thank you for letting us know. Our team will review this recipe shortly."
+                                : "Please let us know why you are reporting this recipe."
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    {isReportSuccess ? null : (
+                        <div className="space-y-4 py-4">
+                            {reportError ? (
+                                <div className="p-3 text-sm flex items-center gap-2 rounded-md bg-destructive/15 text-destructive">
+                                    <IconFlag className="size-4" />
+                                    {reportError}
+                                </div>
+                            ) : null}
+                            <div className="space-y-2">
+                                <Label htmlFor="reason">Reason</Label>
+                                <Select value={reportReason} onValueChange={setReportReason}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a reason" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="spam">Spam or misleading</SelectItem>
+                                        <SelectItem value="inappropriate">Inappropriate content</SelectItem>
+                                        <SelectItem value="copyright">Copyright violation</SelectItem>
+                                        <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="details">Additional Details (Optional)</Label>
+                                <Textarea 
+                                    id="details" 
+                                    placeholder="Provide more context..." 
+                                    value={reportDetails}
+                                    onChange={(e) => setReportDetails(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        {isReportSuccess ? (
+                            <Button onClick={() => setShowReportModal(false)}>Close</Button>
+                        ) : (
+                            <>
+                                <Button variant="outline" onClick={() => setShowReportModal(false)} disabled={isReporting}>Cancel</Button>
+                                <Button variant="destructive" onClick={handleReport} disabled={isReporting || !reportReason}>
+                                    {isReporting ? "Submitting..." : "Submit Report"}
+                                </Button>
+                            </>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
