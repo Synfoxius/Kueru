@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { createRecipe } from "@/lib/db/recipeService";
 import { processAchievementsOnRecipePost } from "@/lib/achievements/trackingService";
+import { processChallengesOnRecipePost } from "@/lib/achievements/challengeTrackingService";
 import {
     ALLERGEN_OPTIONS,
     CUISINE_TYPE_OPTIONS,
@@ -96,7 +97,7 @@ const getValidationErrors = ({
 
 export default function NewRecipePage() {
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { user, userDoc, loading } = useAuth();
 
     const [recipeName, setRecipeName] = useState("");
     const [description, setDescription] = useState("");
@@ -254,6 +255,7 @@ export default function NewRecipePage() {
 
             const { recipeId } = await createRecipe(payload);
             processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
+            processChallengesOnRecipePost(user.uid, recipeId, payload, userDoc).catch(console.error);
             router.push("/recipes/find");
         } catch (error) {
             setSubmitError(error?.message ?? "Unable to create recipe. Please try again.");
