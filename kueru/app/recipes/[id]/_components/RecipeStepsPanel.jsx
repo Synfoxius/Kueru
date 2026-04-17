@@ -28,17 +28,17 @@ export default function RecipeStepsPanel({
                     return (
                         <Card
                             key={`${step.instruction}-${index}`}
-                            className={isActive ? "border-primary bg-primary/5" : "border-border bg-white"}
+                            className={isActive ? "border-primary bg-primary/10 ring-1 ring-primary/40" : "border-border bg-white"}
                         >
                             <CardHeader className="pb-0">
                                 <CardTitle className="flex items-start gap-3">
-                                    <span className={isActive ? "text-primary" : "text-muted-foreground"}>{index + 1}</span>
+                                    <span className={`text-4xl font-bold leading-none ${isActive ? "text-black" : "text-muted"}`}>{index + 1}</span>
                                     <span className="text-base leading-relaxed text-foreground">{step.instruction}</span>
                                 </CardTitle>
                             </CardHeader>
 
-                            <CardContent className="space-y-3 pt-3">
-                                {stepIngredients.length > 0 && (
+                            <CardContent className="space-y-3 pt-3 pb-0">
+                                {isActive && stepIngredients.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                         {stepIngredients.map(([ingredientName, amountAndUnit]) => {
                                             const rawAmount = Number(amountAndUnit?.[0]);
@@ -51,7 +51,7 @@ export default function RecipeStepsPanel({
                                             return (
                                                 <span
                                                     key={`${index}-${ingredientName}`}
-                                                    className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground"
+                                                    className="rounded-full border border-accent bg-accent px-3 py-1 text-xs text-accent-foreground"
                                                 >
                                                     {label}
                                                 </span>
@@ -65,9 +65,10 @@ export default function RecipeStepsPanel({
                                         <Button
                                             type="button"
                                             size="sm"
-                                            variant="outline"
+                                            variant="default"
                                             onClick={onPrevious}
                                             disabled={!canGoPrevious}
+                                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                                         >
                                             <IconChevronUp className="size-4" />
                                             Previous
@@ -75,9 +76,10 @@ export default function RecipeStepsPanel({
                                         <Button
                                             type="button"
                                             size="sm"
-                                            variant="outline"
+                                            variant="default"
                                             onClick={onNext}
                                             disabled={!canGoNext}
+                                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                                         >
                                             <IconChevronDown className="size-4" />
                                             Next

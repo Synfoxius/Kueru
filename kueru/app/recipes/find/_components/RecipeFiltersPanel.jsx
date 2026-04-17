@@ -23,38 +23,25 @@ export default function RecipeFiltersPanel({
     filters,
     availableTags,
     availableIngredients,
+    maxCookTime,
     showOnboardingFilters,
     onboardingDietaryOptions,
     onboardingAllergyOptions,
     onboardingInterestOptions,
     onFiltersChange,
     onReset,
+    onApply,
 }) {
     return (
-        <Card className="border-border bg-card lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-auto">
+        <Card className="border-border bg-white">
             <CardContent className="space-y-5 p-5">
                 <div className="space-y-1">
                     <h1 className="text-xl font-semibold tracking-tight text-foreground">Filter Recipes</h1>
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="recipe-search">Search</Label>
-                    <Input
-                        id="recipe-search"
-                        value={filters.searchTerm}
-                        onChange={(event) =>
-                            onFiltersChange((previous) => ({
-                                ...previous,
-                                searchTerm: event.target.value,
-                            }))
-                        }
-                        placeholder="Search by name or description"
-                    />
-                </div>
-
-                <div className="space-y-2">
                     <Label>Tags</Label>
-                    <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                    <div className="space-y-2 rounded-md border border-border p-3">
                         {availableTags.length === 0 ? <p className="text-xs text-muted-foreground">No tags available.</p> : null}
                         {availableTags.map((tag) => (
                             <div key={tag} className="flex items-center gap-2">
@@ -78,7 +65,7 @@ export default function RecipeFiltersPanel({
 
                 <div className="space-y-2">
                     <Label>Ingredients</Label>
-                    <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                    <div className="space-y-2 rounded-md border border-border p-3">
                         {availableIngredients.length === 0 ? <p className="text-xs text-muted-foreground">No ingredients available.</p> : null}
                         {availableIngredients.map((ingredient) => (
                             <div key={ingredient} className="flex items-center gap-2">
@@ -103,7 +90,7 @@ export default function RecipeFiltersPanel({
                 <CookingTimeRangeControl
                     value={filters.timeRange}
                     min={0}
-                    max={240}
+                    max={maxCookTime || 240}
                     onChange={(nextRange) => onFiltersChange((previous) => ({ ...previous, timeRange: nextRange }))}
                 />
 
@@ -188,9 +175,14 @@ export default function RecipeFiltersPanel({
                     }
                 />
 
-                <Button type="button" variant="outline" className="w-full" onClick={onReset}>
-                    Reset Filters
-                </Button>
+                <div className="flex flex-col gap-2">
+                    <Button type="button" className="w-full" onClick={onApply}>
+                        Apply Filters
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full" onClick={onReset}>
+                        Reset Filters
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     );

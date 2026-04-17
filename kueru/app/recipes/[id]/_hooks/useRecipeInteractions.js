@@ -3,8 +3,8 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
     getRecipeInteractionState,
+    setRecipeVote,
     toggleRecipeSaved,
-    toggleRecipeUpvote,
 } from "../_utils/recipeInteractionsClient";
 
 export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSaved = 0, shareTitle = "Recipe" }) => {
@@ -13,7 +13,7 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
 
     const [upvotes, setUpvotes] = useState(Number(initialUpvotes) || 0);
     const [savedCount, setSavedCount] = useState(Number(initialSaved) || 0);
-    const [hasUpvoted, setHasUpvoted] = useState(false);
+    const [voteValue, setVoteValue] = useState(0);
     const [hasSaved, setHasSaved] = useState(false);
     const [isWorking, setIsWorking] = useState(false);
     const [feedback, setFeedback] = useState("");
@@ -33,7 +33,7 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
         const loadState = async () => {
             if (!user?.uid || !recipeId) {
                 if (isMounted) {
-                    setHasUpvoted(false);
+                    setVoteValue(0);
                     setHasSaved(false);
                 }
                 return;
@@ -44,7 +44,7 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
                 if (!isMounted) {
                     return;
                 }
-                setHasUpvoted(state.hasUpvoted);
+                setVoteValue(Number(state.voteValue) || 0);
                 setHasSaved(state.hasSaved);
             } catch {
                 if (isMounted) {
@@ -74,7 +74,7 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
         return true;
     }, [user?.uid]);
 
-    const onVote = useCallback(async () => {
+    const onVote = useCallback(async (requestedVoteValue) => {
         if (!ensureAuthenticated() || !recipeId || !user?.uid) {
             return;
         }
@@ -83,15 +83,18 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
         setFeedback("");
 
         try {
-            const result = await toggleRecipeUpvote(user.uid, recipeId);
-            setHasUpvoted(result.hasUpvoted);
-            setUpvotes((previous) => Math.max(0, previous + result.upvoteDelta));
+            const result = await setRecipeVote(user.uid, recipeId, requestedVoteValue);
+            setVoteValue(result.voteValue);
+            setUpvotes((previous) => previous + result.upvoteDelta);
         } catch (error) {
             setFeedback(error?.message || "Unable to update vote right now.");
         } finally {
             setIsWorking(false);
         }
     }, [ensureAuthenticated, recipeId, user?.uid]);
+
+    const onUpvote = useCallback(() => onVote(1), [onVote]);
+    const onDownvote = useCallback(() => onVote(-1), [onVote]);
 
     const onSave = useCallback(async () => {
         if (!ensureAuthenticated() || !recipeId || !user?.uid) {
@@ -146,14 +149,15 @@ export const useRecipeInteractions = ({ recipeId, initialUpvotes = 0, initialSav
     return {
         upvotes,
         savedCount,
-        hasUpvoted,
+        voteValue,
         hasSaved,
         isWorking,
         feedback,
         showLoginDialog,
         setShowLoginDialog,
         loginHref,
-        onVote,
+        onUpvote,
+        onDownvote,
         onSave,
         onShare,
     };

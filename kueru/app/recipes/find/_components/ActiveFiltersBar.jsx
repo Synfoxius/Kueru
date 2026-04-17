@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { IconX } from "@tabler/icons-react";
 
-const DEFAULT_RANGE = [0, 240];
-
 const FilterChip = ({ label, onRemove }) => (
     <Button type="button" variant="secondary" size="sm" className="h-8 gap-1" onClick={onRemove}>
         <span className="max-w-[180px] truncate">{label}</span>
@@ -10,7 +8,7 @@ const FilterChip = ({ label, onRemove }) => (
     </Button>
 );
 
-export default function ActiveFiltersBar({ filters, onFiltersChange, onReset }) {
+export default function ActiveFiltersBar({ filters, maxCookTime = 240, onFiltersChange, onReset }) {
     const chips = [];
 
     if (filters.searchTerm) {
@@ -55,11 +53,11 @@ export default function ActiveFiltersBar({ filters, onFiltersChange, onReset }) 
         });
     }
 
-    if (filters.timeRange[0] !== DEFAULT_RANGE[0] || filters.timeRange[1] !== DEFAULT_RANGE[1]) {
+    if (filters.timeRange[0] !== 0 || filters.timeRange[1] !== maxCookTime) {
         chips.push({
             key: "time",
             label: `Time: ${filters.timeRange[0]}-${filters.timeRange[1]} min`,
-            onRemove: () => onFiltersChange((previous) => ({ ...previous, timeRange: DEFAULT_RANGE })),
+            onRemove: () => onFiltersChange((previous) => ({ ...previous, timeRange: [0, maxCookTime] })),
         });
     }
 
@@ -76,7 +74,7 @@ export default function ActiveFiltersBar({ filters, onFiltersChange, onReset }) 
     }
 
     return (
-        <div className="space-y-2 rounded-md border border-border bg-card p-4">
+        <div className="space-y-2 rounded-md border border-border bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
                 {chips.map((chip) => (
                     <FilterChip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
