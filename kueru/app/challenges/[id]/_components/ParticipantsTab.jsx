@@ -77,6 +77,7 @@ export default function ParticipantsTab({ challengeId, currentUserId, goalValue,
             <ul className="space-y-2">
                 {participants.map((p) => {
                     const isYou = p.userId === currentUserId;
+                    const isCollective = challengeType === "collective";
                     const progressPercent = goalValue > 0
                         ? Math.min((p.contribution / goalValue) * 100, 100)
                         : 0;
@@ -113,16 +114,25 @@ export default function ParticipantsTab({ challengeId, currentUserId, goalValue,
                                 )}
                             </div>
 
-                            {/* Progress */}
-                            <div className="w-32 shrink-0 space-y-1">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">Progress</span>
-                                    <span className="font-semibold text-primary">
-                                        {p.contribution}/{goalValue}
-                                    </span>
+                            {/* Progress — individual shows X/goal + bar; collective shows contribution count only */}
+                            {isCollective ? (
+                                <div className="shrink-0 text-right">
+                                    <p className="text-xs text-muted-foreground">Contributed</p>
+                                    <p className="text-sm font-semibold text-primary">
+                                        {p.contribution} {p.contribution === 1 ? "recipe" : "recipes"}
+                                    </p>
                                 </div>
-                                <Progress value={progressPercent} className="h-1.5" />
-                            </div>
+                            ) : (
+                                <div className="w-32 shrink-0 space-y-1">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">Progress</span>
+                                        <span className="font-semibold text-primary">
+                                            {p.contribution}/{goalValue}
+                                        </span>
+                                    </div>
+                                    <Progress value={progressPercent} className="h-1.5" />
+                                </div>
+                            )}
                         </li>
                     );
                 })}
