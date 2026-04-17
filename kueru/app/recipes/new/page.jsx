@@ -8,6 +8,9 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { createRecipe, getRecipe, updateRecipe } from "@/lib/db/recipeService";
+import { processAchievementsOnRecipePost } from "@/lib/achievements/trackingService";
+import { processChallengesOnRecipePost } from "@/lib/achievements/challengeTrackingService";
+import { getAllChallenges, getUserChallenges } from "@/lib/db/challengeService";
 import {
     ALLERGEN_OPTIONS,
     CUISINE_TYPE_OPTIONS,
@@ -24,6 +27,7 @@ import RecipeMediaSection from "./_components/RecipeMediaSection";
 import RecipeMetaSection from "./_components/RecipeMetaSection";
 import IngredientsSection from "./_components/IngredientsSection";
 import StepsSection from "./_components/StepsSection";
+import RecipeChallengeSection from "./_components/RecipeChallengeSection";
 import { buildRecipePayload } from "./_utils/recipePayload";
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -98,7 +102,7 @@ export default function NewRecipePage() {
     const searchParams = useSearchParams();
     const mode = searchParams.get('mode');
     const editRecipeId = searchParams.get('recipeId');
-    const { user, loading } = useAuth();
+    const { user, userDoc, loading } = useAuth();
 
     const [recipeName, setRecipeName] = useState("");
     const [description, setDescription] = useState("");
@@ -116,12 +120,43 @@ export default function NewRecipePage() {
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [activeChallenges, setActiveChallenges] = useState([]);
+    const [selectedChallengeId, setSelectedChallengeId] = useState("");
+    const [challengesLoading, setChallengesLoading] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) {
             router.push("/login");
         }
     }, [loading, user, router]);
+
+    useEffect(() => {
+        if (!user) return;
+        let isMounted = true;
+        const loadChallenges = async () => {
+            try {
+                const [allChallenges, userChallenges] = await Promise.all([
+                    getAllChallenges(),
+                    getUserChallenges(user.uid),
+                ]);
+                const joinedIds = new Set(userChallenges.map((uc) => uc.challengeId ?? uc.id));
+                const now = Date.now();
+                const active = allChallenges.filter((c) => {
+                    if (!joinedIds.has(c.id)) return false;
+                    const end = c.endDate?.toDate?.() ?? new Date(c.endDate);
+                    const start = c.startDate?.toDate?.() ?? new Date(c.startDate);
+                    return now >= start.getTime() && now <= end.getTime();
+                });
+                if (isMounted) setActiveChallenges(active);
+            } catch {
+                // Non-critical — silently ignore, section won't render
+            } finally {
+                if (isMounted) setChallengesLoading(false);
+            }
+        };
+        loadChallenges();
+        return () => { isMounted = false; };
+    }, [user]);
 
     useEffect(() => {
         let isMounted = true;
@@ -333,21 +368,18 @@ export default function NewRecipePage() {
                 recipeTags: combinedRecipeTags,
                 ingredientRows,
                 steps,
+                challengeId: selectedChallengeId || null,
             });
 
-<<<<<<< HEAD
-            const { recipeId } = await createRecipe(payload);
-            processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
-            router.push("/recipes/find");
-=======
             if (mode === 'edit' && editRecipeId) {
                 await updateRecipe(editRecipeId, payload);
                 router.push(`/recipes/${editRecipeId}`);
             } else {
-                await createRecipe(payload);
+                const { recipeId } = await createRecipe(payload);
+                processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
+                processChallengesOnRecipePost(user.uid, recipeId, payload, userDoc).catch(console.error);
                 router.push("/recipes/find");
             }
->>>>>>> origin/feature/recipes
         } catch (error) {
             setSubmitError(error?.message ?? "Unable to create recipe. Please try again.");
         } finally {
@@ -400,6 +432,13 @@ export default function NewRecipePage() {
                         onRemoveAllergen={(tag) => handleRemoveTag(tag, setAllergens)}
                         onRemoveFoodType={(tag) => handleRemoveTag(tag, setFoodTypes)}
                         onRemoveCuisineType={(tag) => handleRemoveTag(tag, setCuisineTypes)}
+                    />
+
+                    <RecipeChallengeSection
+                        challenges={activeChallenges}
+                        selectedChallengeId={selectedChallengeId}
+                        onSelect={setSelectedChallengeId}
+                        loading={challengesLoading}
                     />
 
                     <RecipeMetaSection
