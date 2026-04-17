@@ -9,9 +9,11 @@ import { getRecipe } from "@/lib/db/recipeService";
 import { getUser, savePost, unsavePost } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled, IconFlag } from "@tabler/icons-react";
 import ImageGallery from "./ImageGallery";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ReportDialog from "@/components/ReportDialog";
+import { createReport } from "@/lib/db/reportService";
 import { toast } from "sonner";
 import RecipePreviewCard from "@/app/(forum)/forum/_components/RecipePreviewCard";
 
@@ -39,6 +41,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
 
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
     const [linkedRecipe, setLinkedRecipe] = useState(null);
     const [isSaved, setIsSaved] = useState(false);
 
@@ -128,6 +131,12 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
         if (onDeleted) { onDeleted(); }
     };
 
+    const handleReport = async (reason, details) => {
+        await createReport(post.id, "post", user.uid, reason, details);
+        setShowReportDialog(false);
+        toast.success("Post reported. Our moderators will review it.");
+    };
+
     const tags = post.postType === "Discussion"
         ? (post.postCategory ? [post.postCategory] : [])
         : (post.tags ?? []);
@@ -164,6 +173,14 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                                         <IconTrash className="size-4" /> Delete
                                     </DropdownMenuItem>
                                 </>
+                            )}
+                            {!isOwner && (
+                                <DropdownMenuItem
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                    onClick={() => setShowReportDialog(true)}
+                                >
+                                    <IconFlag className="size-4" /> Report
+                                </DropdownMenuItem>
                             )}
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -319,6 +336,12 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                 destructive
                 onConfirm={handleDelete}
                 onCancel={() => setShowDeleteDialog(false)}
+            />
+
+            <ReportDialog
+                open={showReportDialog}
+                onSubmit={handleReport}
+                onCancel={() => setShowReportDialog(false)}
             />
 
         </div>

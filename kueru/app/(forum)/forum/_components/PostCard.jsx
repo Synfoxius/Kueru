@@ -7,12 +7,14 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { getUser, hidePost, unhidePost, savePost, unsavePost } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
-import { deletePost, reportPost } from "@/lib/db/forumService";
+import { deletePost } from "@/lib/db/forumService";
+import { createReport } from "@/lib/db/reportService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { IconArrowUp, IconArrowDown, IconDots, IconMessageCircle, IconFlag, IconEyeOff, IconChefHat, IconPlayerPlay, IconTrash, IconPencil, IconBookmark, IconBookmarkFilled } from "@tabler/icons-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ReportDialog from "@/components/ReportDialog";
 import { toast } from "sonner";
 
 function timeAgo(timestamp) {
@@ -100,8 +102,8 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
         }
     };
 
-    const handleReport = async () => {
-        await reportPost(post.id);
+    const handleReport = async (reason, details) => {
+        await createReport(post.id, "post", user.uid, reason, details);
         setShowReportDialog(false);
         toast.success("Post reported. Our moderators will review it.");
     };
@@ -274,13 +276,9 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                 onConfirm={handleDelete}
                 onCancel={() => setShowDeleteDialog(false)}
             />
-            <ConfirmDialog
+            <ReportDialog
                 open={showReportDialog}
-                title="Report post?"
-                description="This will flag the post for review by our moderators."
-                confirmLabel="Report"
-                destructive
-                onConfirm={handleReport}
+                onSubmit={handleReport}
                 onCancel={() => setShowReportDialog(false)}
             />
         </Card>
