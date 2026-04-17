@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, getDoc, doc } from 'firebase/firestore';
 
 const REPORTS_COLLECTION = 'reports';
 
@@ -30,6 +30,10 @@ export const createReport = async (targetId, targetType, userId, reason, details
     // Flag the target so admins can filter quickly
     const col = TARGET_COLLECTION[targetType];
     if (col) {
-        await updateDoc(doc(db, col, targetId), { status: 'Reported' });
+        const targetRef = doc(db, col, targetId);
+        const targetSnap = await getDoc(targetRef);
+        if (targetSnap.exists()) {
+            await updateDoc(targetRef, { status: 'Reported' });
+        }
     }
 };
