@@ -94,34 +94,40 @@ export default function NotificationsPage() {
     const loadNotifications = useCallback(async () => {
         if (!user) return;
         setPageLoading(true);
-        const { notifications: notifs, lastDoc: cursor, hasMore: more } = await getNotifications(user.uid);
-        setNotifications(notifs);
-        setLastDoc(cursor);
-        setHasMore(more);
+        try {
+            const { notifications: notifs, lastDoc: cursor, hasMore: more } = await getNotifications(user.uid);
+            setNotifications(notifs);
+            setLastDoc(cursor);
+            setHasMore(more);
 
-        const [senders, achievements] = await Promise.all([
-            fetchNewSenders(notifs, {}),
-            fetchNewAchievements(notifs, {}),
-        ]);
-        setSenderMap(senders);
-        setAchievementsById(achievements);
-        setPageLoading(false);
+            const [senders, achievements] = await Promise.all([
+                fetchNewSenders(notifs, {}),
+                fetchNewAchievements(notifs, {}),
+            ]);
+            setSenderMap(senders);
+            setAchievementsById(achievements);
+        } finally {
+            setPageLoading(false);
+        }
     }, [user, fetchNewSenders, fetchNewAchievements]);
 
     const loadMore = async () => {
         if (!user || !lastDoc || loadingMore) return;
         setLoadingMore(true);
-        const { notifications: more, lastDoc: cursor, hasMore: stillMore } = await getNotifications(user.uid, lastDoc);
-        setNotifications(prev => [...prev, ...more]);
-        setLastDoc(cursor);
-        setHasMore(stillMore);
-        const [updatedSenders, updatedAchievements] = await Promise.all([
-            fetchNewSenders(more, senderMap),
-            fetchNewAchievements(more, achievementsById),
-        ]);
-        setSenderMap(updatedSenders);
-        setAchievementsById(updatedAchievements);
-        setLoadingMore(false);
+        try {
+            const { notifications: more, lastDoc: cursor, hasMore: stillMore } = await getNotifications(user.uid, lastDoc);
+            setNotifications(prev => [...prev, ...more]);
+            setLastDoc(cursor);
+            setHasMore(stillMore);
+            const [updatedSenders, updatedAchievements] = await Promise.all([
+                fetchNewSenders(more, senderMap),
+                fetchNewAchievements(more, achievementsById),
+            ]);
+            setSenderMap(updatedSenders);
+            setAchievementsById(updatedAchievements);
+        } finally {
+            setLoadingMore(false);
+        }
     };
 
     useEffect(() => {
