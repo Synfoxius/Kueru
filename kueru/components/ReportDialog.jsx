@@ -28,7 +28,7 @@ const REASONS = [
  *   onCancel    () => void
  *   onSubmit    (reason: string, details: string | null) => Promise<void>
  */
-export default function ReportDialog({ open, onCancel, onSubmit }) {
+export default function ReportDialog({ open, onCancel, onSubmit, title = "Report post", description = "Help us understand what's wrong with this post." }) {
     const [reason, setReason] = useState(null);
     const [details, setDetails] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -55,9 +55,9 @@ export default function ReportDialog({ open, onCancel, onSubmit }) {
         <Dialog open={open} onOpenChange={(v) => { if (!v) { handleCancel(); } }}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Report post</DialogTitle>
+                    <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>
-                        Help us understand what's wrong with this post.
+                        {description}
                     </DialogDescription>
                 </DialogHeader>
 
