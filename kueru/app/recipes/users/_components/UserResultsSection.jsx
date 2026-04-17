@@ -140,7 +140,7 @@ export default function UserResultsSection({
 
                                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-36">
                                         <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
-                                            <Link href={user?.id ? `/profile?userId=${user.id}` : "/profile"}>View Profile</Link>
+                                            <Link href={user?.username ? `/profile/${user.username}` : "/profile"}>View Profile</Link>
                                         </Button>
 
                                         {currentUserId ? (

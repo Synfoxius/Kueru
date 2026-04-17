@@ -1,6 +1,7 @@
 import { db } from '../firebase/config';
 import { arrayUnion, arrayRemove, collection, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
+import { getFollowing } from './followService';
 
 const RECIPES_COLLECTION = 'recipes';
 const DEFAULT_SORT_FIELD = 'createdAt';
@@ -88,7 +89,6 @@ const normalizeStepArray = (value, normalizedIngredients) => {
 const normalizeFilters = (filters = {}) => {
     const searchTerm = String(filters.searchTerm ?? filters.search ?? '').trim();
     const tags = normalizeStringArray(filters.tags);
-    const ingredients = normalizeStringArray(filters.ingredients);
     const onboardingDietaryPreferences = normalizeStringArray(filters.onboardingDietaryPreferences);
     const onboardingRecipeInterests = normalizeStringArray(filters.onboardingRecipeInterests);
     const onboardingExcludedAllergies = normalizeStringArray(filters.onboardingExcludedAllergies);
@@ -105,7 +105,6 @@ const normalizeFilters = (filters = {}) => {
     return {
         searchTerm,
         tags,
-        ingredients,
         onboardingDietaryPreferences,
         onboardingRecipeInterests,
         onboardingExcludedAllergies,
@@ -117,6 +116,7 @@ const normalizeFilters = (filters = {}) => {
         sortField,
         sortDirection,
         verification,
+        followedByUserId: filters.followedByUserId || null,
     };
 };
 
@@ -237,14 +237,6 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
         }
     }
 
-    if (filters.ingredients.length > 0) {
-        const recipeIngredientKeys = Object.keys(recipe.ingredients ?? {}).map((key) => key.toLowerCase());
-        const hasAllIngredients = filters.ingredients.every((ingredient) => recipeIngredientKeys.includes(ingredient.toLowerCase()));
-        if (!hasAllIngredients) {
-            return false;
-        }
-    }
-
     if (filters.onboardingExcludedAllergies.length > 0) {
         const recipeIngredientSet = normalizeLowercaseSet(Object.keys(recipe.ingredients ?? {}));
         const excludedAllergySet = normalizeLowercaseSet(filters.onboardingExcludedAllergies);
@@ -283,6 +275,12 @@ const recipeMatchesFilters = (recipe, filters, usersById) => {
         }
 
         if (filters.verification === 'verified_excluded' && isVerified) {
+            return false;
+        }
+    }
+
+    if (filters.followedUserIds) {
+        if (!filters.followedUserIds.has(recipe.userId)) {
             return false;
         }
     }
@@ -437,7 +435,7 @@ export const updateRecipe = async (recipeId, recipeData = {}) => {
     if (steps.length < 1) throw new Error('At least one step instruction is required.');
 
     const recipeRef = doc(db, RECIPES_COLLECTION, recipeId);
-    
+
     await updateDoc(recipeRef, {
         name,
         description,
@@ -456,6 +454,11 @@ export const getAllRecipes = async (filters = {}, lastDoc = null, limitCount = 1
     const normalizedFilters = normalizeFilters(filters);
     const targetCount = Math.max(1, limitCount);
     const pageLimit = Math.max(targetCount * 3, 20);
+
+    if (normalizedFilters.followedByUserId) {
+        const follows = await getFollowing(normalizedFilters.followedByUserId);
+        normalizedFilters.followedUserIds = new Set(follows.map((f) => f.followingId));
+    }
 
     const collectedRecipes = [];
     let cursor = lastDoc;
@@ -579,58 +582,6 @@ export const getAvailableRecipeTags = async () => {
     });
 
     return [...tagSet].sort((leftTag, rightTag) => leftTag.localeCompare(rightTag));
-};
-
-export const getAvailableRecipeIngredients = async () => {
-    const docs = await scanRecipesForMetadata();
-    const ingredientSet = new Set();
-
-    docs.forEach((recipeDoc) => {
-        const ingredients = recipeDoc.data().ingredients;
-        if (ingredients && typeof ingredients === 'object') {
-            Object.keys(ingredients).forEach((ingredient) => {
-                if (ingredient) {
-                    ingredientSet.add(ingredient);
-                }
-            });
-        }
-    });
-
-    return [...ingredientSet].sort((leftIngredient, rightIngredient) => leftIngredient.localeCompare(rightIngredient));
-};
-
-/**
- * Fetches multiple recipes by their Firestore document IDs.
- * Batches IDs into groups of 10 to stay within Firestore's 'in' operator limit.
- * Preserves the original order of the input IDs.
- *
- * @param {string[]} recipeIds
- * @returns {Promise<Array<{ id: string, name: string, createdAt: any, upvotes: number }>>}
- */
-export const getRecipesByIds = async (recipeIds = []) => {
-    const unique = [...new Set(recipeIds.filter(Boolean))];
-    if (unique.length === 0) return [];
-
-    const chunks = [];
-    for (let i = 0; i < unique.length; i += 10) {
-        chunks.push(unique.slice(i, i + 10));
-    }
-
-    const snaps = await Promise.all(
-        chunks.map((batch) =>
-            getDocs(query(collection(db, RECIPES_COLLECTION), where(documentId(), 'in', batch)))
-        )
-    );
-
-    const byId = {};
-    snaps.forEach((snap) => {
-        snap.docs.forEach((d) => {
-            byId[d.id] = { id: d.id, ...d.data() };
-        });
-    });
-
-    // Return in the same order as the input IDs
-    return unique.map((id) => byId[id]).filter(Boolean);
 };
 
 export const getMaxRecipeCookTime = async () => {

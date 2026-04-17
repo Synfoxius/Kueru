@@ -1,8 +1,10 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import CookingTimeRangeControl from "./CookingTimeRangeControl";
 import OnboardingPreferenceFilters from "./OnboardingPreferenceFilters";
 
@@ -22,16 +24,26 @@ const toggleArrayItem = (items, item) => {
 export default function RecipeFiltersPanel({
     filters,
     availableTags,
-    availableIngredients,
     maxCookTime,
     showOnboardingFilters,
     onboardingDietaryOptions,
     onboardingAllergyOptions,
     onboardingInterestOptions,
+    isAuthenticated,
+    currentUserId,
     onFiltersChange,
     onReset,
     onApply,
 }) {
+    const [tagSearch, setTagSearch] = useState("");
+
+    const filteredTags = useMemo(() => {
+        if (!tagSearch.trim()) return availableTags;
+        return availableTags.filter((tag) => 
+            tag.toLowerCase().includes(tagSearch.trim().toLowerCase())
+        );
+    }, [availableTags, tagSearch]);
+
     return (
         <Card className="border-border bg-white">
             <CardContent className="space-y-5 p-5">
@@ -41,49 +53,38 @@ export default function RecipeFiltersPanel({
 
                 <div className="space-y-2">
                     <Label>Tags</Label>
-                    <div className="space-y-2 rounded-md border border-border p-3">
-                        {availableTags.length === 0 ? <p className="text-xs text-muted-foreground">No tags available.</p> : null}
-                        {availableTags.map((tag) => (
-                            <div key={tag} className="flex items-center gap-2">
-                                <Checkbox
-                                    id={`tag-${tag}`}
-                                    checked={filters.tags.includes(tag)}
-                                    onCheckedChange={() =>
-                                        onFiltersChange((previous) => ({
-                                            ...previous,
-                                            tags: toggleArrayItem(previous.tags, tag),
-                                        }))
-                                    }
-                                />
-                                <Label htmlFor={`tag-${tag}`} className="text-sm font-normal">
-                                    {tag}
-                                </Label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <Label>Ingredients</Label>
-                    <div className="space-y-2 rounded-md border border-border p-3">
-                        {availableIngredients.length === 0 ? <p className="text-xs text-muted-foreground">No ingredients available.</p> : null}
-                        {availableIngredients.map((ingredient) => (
-                            <div key={ingredient} className="flex items-center gap-2">
-                                <Checkbox
-                                    id={`ingredient-${ingredient}`}
-                                    checked={filters.ingredients.includes(ingredient)}
-                                    onCheckedChange={() =>
-                                        onFiltersChange((previous) => ({
-                                            ...previous,
-                                            ingredients: toggleArrayItem(previous.ingredients, ingredient),
-                                        }))
-                                    }
-                                />
-                                <Label htmlFor={`ingredient-${ingredient}`} className="text-sm font-normal">
-                                    {ingredient}
-                                </Label>
-                            </div>
-                        ))}
+                    <div className="flex flex-col gap-3 rounded-md border border-border p-3">
+                        <Input
+                            placeholder="Filter tags..."
+                            value={tagSearch}
+                            onChange={(e) => setTagSearch(e.target.value)}
+                            className="h-8 text-sm"
+                        />
+                        <div className="flex flex-wrap gap-2 max-h-[120px] scrollbar-thin overflow-y-auto overflow-x-hidden p-1">
+                            {filteredTags.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No tags found.</p>
+                            ) : null}
+                            {filteredTags.map((tag) => {
+                                const isSelected = filters.tags.includes(tag);
+                                return (
+                                    <Button
+                                        key={tag}
+                                        type="button"
+                                        size="sm"
+                                        variant={isSelected ? "default" : "outline"}
+                                        className="rounded-full"
+                                        onClick={() =>
+                                            onFiltersChange((previous) => ({
+                                                ...previous,
+                                                tags: toggleArrayItem(previous.tags, tag),
+                                            }))
+                                        }
+                                    >
+                                        <span className="truncate max-w-[200px]">{tag}</span>
+                                    </Button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -146,6 +147,29 @@ export default function RecipeFiltersPanel({
                         ))}
                     </div>
                 </div>
+
+                {isAuthenticated && currentUserId && (
+                    <div className="space-y-2">
+                        <Label>Following</Label>
+                        <div className="space-y-2 rounded-md border border-border p-3">
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="filter-followed"
+                                    checked={filters.followedByUserId === currentUserId}
+                                    onCheckedChange={(checked) =>
+                                        onFiltersChange((previous) => ({
+                                            ...previous,
+                                            followedByUserId: checked ? currentUserId : null,
+                                        }))
+                                    }
+                                />
+                                <Label htmlFor="filter-followed" className="text-sm font-normal">
+                                    Followed users only
+                                </Label>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <OnboardingPreferenceFilters
                     show={showOnboardingFilters}
