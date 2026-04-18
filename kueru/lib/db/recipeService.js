@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { arrayUnion, arrayRemove, collection, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
+import { arrayUnion, arrayRemove, collection, collectionGroup, doc, documentId, getDoc, getDocs, query, where, orderBy, limit, startAfter, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { getUsersByIds } from './userService';
 import { getFollowing } from './followService';
 
@@ -161,6 +161,23 @@ const sortRecipes = (recipes, sortField, sortDirection) => {
     });
 
     return sorted;
+};
+
+/**
+ * Get all recipes upvoted by a user using a collection group query.
+ * @param {string} userId
+ * @returns {Promise<Array>}
+ */
+export const getUpvotedRecipes = async (userId) => {
+    const q = query(
+        collectionGroup(db, 'votes'),
+        where('userId', '==', userId),
+        where('value', '==', 1)
+    );
+    const snap = await getDocs(q);
+    const recipeIds = [...new Set(snap.docs.map(d => d.ref.parent.parent.id).filter(Boolean))];
+    const recipeSnaps = await Promise.all(recipeIds.map(id => getDoc(doc(db, RECIPES_COLLECTION, id))));
+    return recipeSnaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() }));
 };
 
 const buildBaseQueryConstraints = (filters, pageLimit, lastDoc) => {

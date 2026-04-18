@@ -30,21 +30,28 @@ export const getPostsByCategory = async (category, lastDoc = null, limitCount = 
     return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
 };
 
-export const getRecentPosts = async (lastDoc = null, limitCount = 15) => {
+const SORT_FIELDS = {
+    "Newest": "postedDateTime",
+    "Most Popular": "upvotesCount",
+    "Most Comments": "commentsCount",
+};
+
+export const getRecentPosts = async (lastDoc = null, limitCount = 15, sortBy = "Newest") => {
     const postsRef = collection(db, FORUM_COLLECTION);
-    
+    const sortField = SORT_FIELDS[sortBy] ?? "postedDateTime";
+
     let queryConstraints = [
-        orderBy('postedDateTime', 'desc'),
+        orderBy(sortField, 'desc'),
         limit(limitCount)
     ];
-    
+
     if (lastDoc) {
         queryConstraints.push(startAfter(lastDoc));
     }
-    
+
     const q = query(postsRef, ...queryConstraints);
     const snap = await getDocs(q);
-    
+
     const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
 };

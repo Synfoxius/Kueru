@@ -7,13 +7,8 @@ import DataTable from "../../_components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const STATUS_VARIANT = {
-    pending: "outline",
-    under_review: "secondary",
-    approved: "default",
-    rejected: "destructive",
-};
+import { IconEye } from "@tabler/icons-react";
+import { STATUS_COLOR } from "../../_lib/badgeColors";
 
 const FILTERS = [
     { value: "all",          label: "All" },
@@ -46,7 +41,7 @@ const columns = [
         key: "status",
         label: "Status",
         render: (row) => (
-            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
+            <Badge variant="outline" className={STATUS_COLOR[row.status] ?? ""}>
                 {row.status.replace("_", " ")}
             </Badge>
         ),
@@ -74,14 +69,12 @@ export default function VerificationsPage() {
         fetchVerifications();
     }, [fetchVerifications]);
 
-    // Per-status counts for filter labels
     const counts = useMemo(() => {
         const c = { all: verifications.length, pending: 0, under_review: 0, approved: 0, rejected: 0 };
         verifications.forEach((v) => { if (v.status in c) c[v.status]++; });
         return c;
     }, [verifications]);
 
-    // Client-side filter
     const filtered = useMemo(
         () =>
             activeFilter === "all"
@@ -90,7 +83,6 @@ export default function VerificationsPage() {
         [verifications, activeFilter]
     );
 
-    // DataTable expects row.id; verifications use verificationId
     const tableData = useMemo(
         () => filtered.map((v) => ({ ...v, id: v.verificationId })),
         [filtered]
@@ -100,9 +92,11 @@ export default function VerificationsPage() {
         <Button
             size="sm"
             variant="outline"
+            className="gap-1.5"
             onClick={() => router.push(`/admin/verifications/${row.verificationId}`)}
         >
-            View
+            <IconEye className="size-4" />
+            Show Details
         </Button>
     );
 
@@ -113,7 +107,6 @@ export default function VerificationsPage() {
                 {verifications.length} total request{verifications.length !== 1 ? "s" : ""}
             </p>
 
-            {/* Status filter */}
             <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
                 {FILTERS.map((f) => (
                     <button
@@ -122,14 +115,12 @@ export default function VerificationsPage() {
                         className={cn(
                             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                             activeFilter === f.value
-                                ? "bg-background text-foreground shadow-sm"
+                                ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         {f.label}
-                        <span className="ml-1.5 text-xs opacity-60">
-                            {counts[f.value]}
-                        </span>
+                        <span className="ml-1.5 text-xs opacity-60">{counts[f.value]}</span>
                     </button>
                 ))}
             </div>
@@ -139,6 +130,7 @@ export default function VerificationsPage() {
                 data={tableData}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["userId"]}
                 emptyMessage="No verification requests found."
             />
         </div>

@@ -57,16 +57,19 @@ export default function ForumPage() {
     }, [user]);
 
     useEffect(() => {
-        getRecentPosts()
+        setLoading(true);
+        setLastDoc(null);
+        setHasMore(true);
+        getRecentPosts(null, LIMIT, sort)
             .then(({ posts, lastDoc }) => {
                 setAllPosts(posts);
                 setLastDoc(lastDoc);
                 setHasMore(posts.length === LIMIT);
-                setCategories([...new Set(posts.map(post => post.postCategory).filter(Boolean))]);
+                setCategories((prev) => [...new Set([...prev, ...posts.map((p) => p.postCategory).filter(Boolean)])]);
             })
             .catch(() => setError("Failed to load forum posts. Please try again later."))
             .finally(() => setLoading(false));
-    }, []);
+    }, [sort]);
 
     const handlePostDeleted = (postId) => {
         setAllPosts((prev) => prev.filter((post) => post.id !== postId));
@@ -76,7 +79,7 @@ export default function ForumPage() {
         if (!lastDoc || loadingMore) return;
         setLoadingMore(true);
         try {
-            const { posts, lastDoc: newLastDoc } = await getRecentPosts(lastDoc);
+            const { posts, lastDoc: newLastDoc } = await getRecentPosts(lastDoc, LIMIT, sort);
             setAllPosts((prev) => [...prev, ...posts]);
             setLastDoc(newLastDoc);
             setHasMore(posts.length === LIMIT);
@@ -100,27 +103,14 @@ export default function ForumPage() {
         setHiddenPostIds((prev) => prev.filter((id) => id !== postId));
     };
 
-    const displayedPosts = [...allPosts]
-        .filter(post => {
-            const query = search.toLowerCase();
-            const matchesSearch = post.title.toLowerCase().includes(query) ||
-                post.content?.toLowerCase().includes(query);
-            const matchesCategory = selectedCategories.length === 0 ||
-                selectedCategories.includes(post.postCategory);
-            return matchesSearch && matchesCategory;
-        })
-        .sort((a, b) => {
-            if (sort === "Most Popular") {
-                return b.upvotesCount - a.upvotesCount;
-            }
-            if (sort === "Newest") {
-                return (b.postedDateTime?.seconds ?? 0) - (a.postedDateTime?.seconds ?? 0);
-            }
-            if (sort === "Most Comments") {
-                return (b.commentsCount ?? 0) - (a.commentsCount ?? 0);
-            }
-            return 0;
-        });
+    const displayedPosts = allPosts.filter((post) => {
+        const query = search.toLowerCase();
+        const matchesSearch = post.title.toLowerCase().includes(query) ||
+            post.content?.toLowerCase().includes(query);
+        const matchesCategory = selectedCategories.length === 0 ||
+            selectedCategories.includes(post.postCategory);
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="min-h-screen bg-background">
@@ -225,7 +215,7 @@ export default function ForumPage() {
                                     onUnhidden={handlePostUnhidden}
                                 />
                             ))}
-                            {hasMore && !search && selectedCategories.length === 0 && (
+                            {hasMore && (
                                 <Button
                                     variant="outline"
                                     className="w-full bg-white"

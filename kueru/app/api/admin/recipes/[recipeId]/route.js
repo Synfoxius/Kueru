@@ -38,16 +38,38 @@ export async function PATCH(request, { params }) {
 
     try {
         const { recipeId } = await params;
-        const { status } = await request.json();
+        const body = await request.json();
+        const update = {};
 
-        if (!VALID_STATUSES.includes(status)) {
-            return NextResponse.json(
-                { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
-                { status: 400 }
-            );
+        if (body.status !== undefined) {
+            if (!VALID_STATUSES.includes(body.status)) {
+                return NextResponse.json(
+                    { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
+                    { status: 400 }
+                );
+            }
+            update.status = body.status;
         }
 
-        await updateRecipeStatus(recipeId, status);
+        if (body.tags !== undefined) {
+            if (!Array.isArray(body.tags) || body.tags.some((t) => typeof t !== 'string')) {
+                return NextResponse.json({ error: 'tags must be an array of strings' }, { status: 400 });
+            }
+            update.tags = body.tags;
+        }
+
+        if (Object.keys(update).length === 0) {
+            return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+        }
+
+        if (update.status) {
+            await updateRecipeStatus(recipeId, update.status);
+            delete update.status;
+        }
+        if (Object.keys(update).length > 0) {
+            await adminDB.collection('recipes').doc(recipeId).update(update);
+        }
+
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('[admin/recipes PATCH]', err);

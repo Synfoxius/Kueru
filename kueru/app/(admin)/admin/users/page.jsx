@@ -2,20 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/api/adminFetch";
 import DataTable from "../../_components/DataTable";
-import ConfirmDialog from "../../_components/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { IconChevronDown, IconTrash } from "@tabler/icons-react";
-
-const ROLE_VARIANT = { admin: "default", chef: "secondary", customer: "outline" };
+import { IconEye, IconTrash, IconCircleCheck } from "@tabler/icons-react";
+import { ROLE_COLOR, STATUS_COLOR } from "../../_lib/badgeColors";
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -30,14 +23,26 @@ const columns = [
         key: "role",
         label: "Role",
         render: (row) => (
-            <Badge variant={ROLE_VARIANT[row.role] ?? "outline"}>{row.role}</Badge>
+            <Badge variant="outline" className={ROLE_COLOR[row.role] ?? ""}>{row.role}</Badge>
         ),
+    },
+    {
+        key: "status",
+        label: "Status",
+        render: (row) => {
+            const status = row.status ?? "active";
+            return (
+                <Badge variant="outline" className={`capitalize ${STATUS_COLOR[status] ?? ""}`}>
+                    {status}
+                </Badge>
+            );
+        },
     },
     {
         key: "verified",
         label: "Verified",
         render: (row) => (
-            <Badge variant={row.verified ? "default" : "outline"}>
+            <Badge variant="outline" className={row.verified ? STATUS_COLOR.active : "bg-slate-100 text-slate-600 border-slate-200"}>
                 {row.verified ? "Yes" : "No"}
             </Badge>
         ),
@@ -51,10 +56,9 @@ const columns = [
 
 export default function UsersPage() {
     const { user: currentUser } = useAuth();
+    const router = useRouter();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -71,62 +75,48 @@ export default function UsersPage() {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleRoleChange = async (userId, role) => {
+    const handleStatusChange = async (userId, status) => {
         await adminFetch(`/api/admin/users/${userId}`, {
             method: "PATCH",
-            body: JSON.stringify({ role }),
+            body: JSON.stringify({ status }),
         });
         setUsers((prev) =>
-            prev.map((u) => (u.userId === userId ? { ...u, role } : u))
+            prev.map((u) => (u.userId === userId ? { ...u, status } : u))
         );
-    };
-
-    const handleDelete = async () => {
-        if (!deleteTarget) return;
-        setDeleteLoading(true);
-        try {
-            await adminFetch(`/api/admin/users/${deleteTarget.userId}`, {
-                method: "DELETE",
-            });
-            setUsers((prev) => prev.filter((u) => u.userId !== deleteTarget.userId));
-            setDeleteTarget(null);
-        } finally {
-            setDeleteLoading(false);
-        }
     };
 
     const renderActions = (row) => {
         const isSelf = row.userId === currentUser?.uid;
+        const currentStatus = row.status ?? "active";
+        const isDisabled = currentStatus === "disabled";
         return (
-        <div className="flex items-center justify-end gap-2">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1" disabled={isSelf}>
-                        Role <IconChevronDown className="size-3" />
+            <div className="flex items-center justify-end gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => router.push(`/admin/users/${row.userId}`)}
+                >
+                    <IconEye className="size-4" /> Show Details
+                </Button>
+                {!isSelf && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        title={isDisabled ? "Enable user" : "Disable user"}
+                        className={isDisabled
+                            ? "text-green-600 hover:bg-green-50 hover:text-green-700"
+                            : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        }
+                        onClick={() => handleStatusChange(row.userId, isDisabled ? "active" : "disabled")}
+                    >
+                        {isDisabled
+                            ? <IconCircleCheck className="size-4" />
+                            : <IconTrash className="size-4" />
+                        }
                     </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    {["admin", "chef", "customer"].map((role) => (
-                        <DropdownMenuItem
-                            key={role}
-                            onClick={() => handleRoleChange(row.userId, role)}
-                            disabled={row.role === role}
-                        >
-                            Set {role}
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setDeleteTarget(row)}
-                disabled={isSelf}
-            >
-                <IconTrash className="size-4" />
-            </Button>
-        </div>
+                )}
+            </div>
         );
     };
 
@@ -141,16 +131,8 @@ export default function UsersPage() {
                 data={users}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["username", "email"]}
                 emptyMessage="No users found."
-            />
-            <ConfirmDialog
-                open={!!deleteTarget}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-                title="Delete User"
-                description={`Are you sure you want to permanently delete @${deleteTarget?.username}? This cannot be undone.`}
-                confirmLabel="Delete"
-                onConfirm={handleDelete}
-                loading={deleteLoading}
             />
         </div>
     );

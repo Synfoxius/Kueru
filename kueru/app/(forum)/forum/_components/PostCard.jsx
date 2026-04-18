@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getUser, hidePost, unhidePost, savePost, unsavePost } from "@/lib/db/userService";
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
 import { deletePost } from "@/lib/db/forumService";
+import { getRecipe } from "@/lib/db/recipeService";
 import { createReport } from "@/lib/db/reportService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +37,8 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [recipeTags, setRecipeTags] = useState([]);
+    const [recipeDeleted, setRecipeDeleted] = useState(false);
 
     const handleDelete = async () => {
         await deletePost(post.id);
@@ -64,6 +67,18 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
         }
     }, [post.userId]);
 
+    useEffect(() => {
+        if (post.postType === "Recipe" && post.recipeId) {
+            getRecipe(post.recipeId).then((r) => {
+                if (!r || r.status === "deleted") {
+                    setRecipeDeleted(true);
+                } else if (r.tags) {
+                    setRecipeTags(r.tags);
+                }
+            });
+        }
+    }, [post.postType, post.recipeId]);
+
     const handleVote = async (value) => {
         if (!user) {
             return;
@@ -85,7 +100,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
 
     const displayTags = postType === "Discussion"
         ? (post.postCategory ? [post.postCategory] : [])
-        : (post.tags ?? []);
+        : recipeTags;
 
     const handleSave = async () => {
         if (!user) { return; }
@@ -194,14 +209,21 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
 
                     {/* Recipe link */}
                     {post.postType === "Recipe" && post.recipeId && (
-                        <Link
-                            href={`/recipe/${post.recipeId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/30 bg-primary/5 text-xs text-primary font-medium hover:bg-primary/10 transition-colors w-fit"
-                        >
-                            <IconChefHat className="size-3.5 shrink-0" />
-                            View Recipe
-                        </Link>
+                        recipeDeleted ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted text-xs text-muted-foreground font-medium italic w-fit">
+                                <IconChefHat className="size-3.5 shrink-0" />
+                                Recipe deleted
+                            </span>
+                        ) : (
+                            <Link
+                                href={`/recipes/${post.recipeId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/30 bg-primary/5 text-xs text-primary font-medium hover:bg-primary/10 transition-colors w-fit"
+                            >
+                                <IconChefHat className="size-3.5 shrink-0" />
+                                View Recipe
+                            </Link>
+                        )
                     )}
 
                     {/* Meta */}
@@ -258,12 +280,16 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                             {isSaved ? "Unsave" : "Save"}
                         </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setShowReportDialog(true)}>
-                        <IconFlag className="size-4" /> Report
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2" onClick={handleHide}>
-                        <IconEyeOff className="size-4" /> Hide
-                    </DropdownMenuItem>
+                    {user && user.uid !== post.userId && (
+                        <>
+                            <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setShowReportDialog(true)}>
+                                <IconFlag className="size-4" /> Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2" onClick={handleHide}>
+                                <IconEyeOff className="size-4" /> Hide
+                            </DropdownMenuItem>
+                        </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 

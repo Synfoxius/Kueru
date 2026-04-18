@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import {
     IconArrowLeft, IconCheck, IconRefresh, IconExternalLink,
 } from "@tabler/icons-react";
-import { getPreviewImageUrl } from "@/lib/media";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +60,7 @@ function InfoRow({ label, value }) {
 // ── Target preview components ─────────────────────────────────────────────────
 
 function RecipePreview({ target }) {
-    const firstImage = getPreviewImageUrl(target.images, null);
+    const firstImage = target.images?.[0] ?? null;
     return (
         <Card>
             <CardContent className="p-5 space-y-3">

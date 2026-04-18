@@ -3,7 +3,25 @@ import { verifyAdminRequest } from '@/lib/api/adminAuthMiddleware';
 import { deleteUser } from '@/lib/db/adminUserService';
 import { NextResponse } from 'next/server';
 
-const VALID_ROLES = ['admin', 'chef', 'customer'];
+const VALID_ROLES    = ['admin', 'chef', 'customer'];
+const VALID_STATUSES = ['active', 'disabled'];
+
+export async function GET(request, { params }) {
+    const { error } = await verifyAdminRequest(request);
+    if (error) return error;
+
+    try {
+        const { userId } = await params;
+        const snap = await adminDB.collection('users').doc(userId).get();
+        if (!snap.exists) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+        return NextResponse.json({ user: { userId: snap.id, ...snap.data() } });
+    } catch (err) {
+        console.error('[admin/users GET single]', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
 
 export async function PATCH(request, { params }) {
     const { uid, error } = await verifyAdminRequest(request);
@@ -11,13 +29,28 @@ export async function PATCH(request, { params }) {
 
     try {
         const { userId } = await params;
-        const { role } = await request.json();
+        const body = await request.json();
+        const update = {};
 
-        if (!VALID_ROLES.includes(role)) {
-            return NextResponse.json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` }, { status: 400 });
+        if (body.role !== undefined) {
+            if (!VALID_ROLES.includes(body.role)) {
+                return NextResponse.json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` }, { status: 400 });
+            }
+            update.role = body.role;
         }
 
-        await adminDB.collection('users').doc(userId).update({ role });
+        if (body.status !== undefined) {
+            if (!VALID_STATUSES.includes(body.status)) {
+                return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 });
+            }
+            update.status = body.status;
+        }
+
+        if (Object.keys(update).length === 0) {
+            return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+        }
+
+        await adminDB.collection('users').doc(userId).update(update);
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('[admin/users PATCH]', err);

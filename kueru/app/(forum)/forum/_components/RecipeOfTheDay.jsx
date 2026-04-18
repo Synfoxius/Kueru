@@ -84,7 +84,7 @@ export default function RecipeOfTheDay() {
 
                     {/* Visit button */}
                     <div className="absolute right-4 inset-y-0 flex items-center">
-                        <Link href={`/recipe/${recipe.id}`}>
+                        <Link href={`/recipes/${recipe.id}`}>
                             <Button size="sm" className="rounded-full">
                                 Visit →
                             </Button>
