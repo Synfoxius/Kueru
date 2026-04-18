@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import {
-    IconUser, IconAdjustments, IconLock, IconLogout,
+    IconUser, IconAdjustments, IconLock, IconLogout, IconHistory,
     IconChevronRight, IconCircleCheck, IconAlertCircle,
 } from "@tabler/icons-react";
 
@@ -86,6 +86,15 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground mb-8">Manage your account</p>
 
                 <div className="rounded-2xl border border-border overflow-hidden divide-y divide-border">
+
+                    {/* Activity */}
+                    <SettingRow
+                        icon={IconHistory}
+                        iconColor="text-green-500"
+                        label="Activity"
+                        description="Your saved posts, recipes and upvote history"
+                        onClick={() => router.push("/settings/activities")}
+                    />
 
                     {/* Edit Profile */}
                     <SettingRow
