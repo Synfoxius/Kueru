@@ -29,6 +29,25 @@ export const DEFAULT_STEP = {
 
 export const MAX_MEDIA_FILES = 8;
 export const MAX_MEDIA_SIZE_BYTES = 100 * 1024 * 1024;
+export const MAX_CONVERSION_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
+export const SUPPORTED_CONVERSION_VIDEO_MIME_TYPES = [
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+    "video/x-msvideo",
+    "video/x-matroska",
+    "video/mpeg",
+];
+
+export const AI_COOKING_LOADING_MESSAGES = [
+    "Preheating the smart oven...",
+    "Sharpening digital chef knives...",
+    "Tasting for salt with silicon precision...",
+    "Letting the sauce simmer for perfect steps...",
+    "Plating your recipe with AI garnish...",
+    "Whisking instructions into a smooth guide...",
+    "Checking if every ingredient is pantry-friendly...",
+];
 
 export const MIN_COOK_TIME = 1;
 export const MIN_SERVINGS = 1;

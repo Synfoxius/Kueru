@@ -181,3 +181,94 @@
     @apply font-sans;
   }
 }
+
+@keyframes kueru-shimmer-sweep {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@layer components {
+  .convert-video-button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .convert-video-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(110deg,
+        hsl(27 30% 86% / 0.75) 0%,
+        hsl(34 72% 52% / 0.9) 48%,
+        hsl(27 30% 86% / 0.75) 100%);
+    background-size: 200% 100%;
+    animation: kueru-shimmer-sweep 3.2s linear infinite;
+    pointer-events: none;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .convert-video-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(115deg,
+        transparent 0%,
+        hsl(34 72% 52% / 0.3) 45%,
+        hsl(14 66% 52% / 0.22) 55%,
+        transparent 100%);
+    background-size: 200% 100%;
+    animation: kueru-shimmer-sweep 3.0s linear infinite;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+  }
+
+  .convert-video-button:hover::after {
+    opacity: 1;
+  }
+
+  .convert-video-button > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .convert-video-modal-shimmer {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .convert-video-modal-shimmer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.75px;
+    background: linear-gradient(110deg,
+        hsl(27 30% 86% / 0.75) 0%,
+        hsl(34 72% 52% / 0.9) 48%,
+        hsl(27 30% 86% / 0.75) 100%);
+    background-size: 200% 100%;
+    animation: kueru-shimmer-sweep 3.2s linear infinite;
+    pointer-events: none;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .convert-video-modal-shimmer > * {
+    position: relative;
+    z-index: 1;
+  }
+}
