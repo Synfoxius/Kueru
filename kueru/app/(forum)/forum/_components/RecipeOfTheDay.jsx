@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getAllRecipes } from "@/lib/db/recipeService";
+import { getPreviewImageUrl } from "@/lib/media";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -43,14 +44,17 @@ export default function RecipeOfTheDay() {
             <CardContent className="p-0">
                 <div className="relative h-44 w-full bg-muted">
 
-                    {recipe.images?.[0] && (
-                        <Image
-                            src={recipe.images[0]}
-                            alt={recipe.name}
-                            fill
-                            className="object-cover brightness-60"
-                        />
-                    )}
+                    {(() => {
+                        const imageUrl = getPreviewImageUrl(recipe.images, null);
+                        return imageUrl ? (
+                            <Image
+                                src={imageUrl}
+                                alt={recipe.name}
+                                fill
+                                className="object-cover brightness-60"
+                            />
+                        ) : null;
+                    })()}
 
                     <div className="absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
                         <span className="w-fit rounded-full bg-yellow-400 px-3 py-0.5 text-xs font-semibold text-black">

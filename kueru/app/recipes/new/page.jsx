@@ -24,11 +24,13 @@ import {
 import RecipeBasicsSection from "./_components/RecipeBasicsSection";
 import RecipeTagsSection, { normalizeTag, splitCommittedTags } from "./_components/RecipeTagsSection";
 import RecipeMediaSection from "./_components/RecipeMediaSection";
+import VideoConverterDialog from "./_components/VideoConverterDialog";
 import RecipeMetaSection from "./_components/RecipeMetaSection";
 import IngredientsSection from "./_components/IngredientsSection";
 import StepsSection from "./_components/StepsSection";
 import RecipeChallengeSection from "./_components/RecipeChallengeSection";
 import { buildRecipePayload } from "./_utils/recipePayload";
+import { parseMediaItemsForEdit } from "@/lib/media";
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -120,6 +122,8 @@ export default function NewRecipePage() {
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [isVideoConverterOpen, setIsVideoConverterOpen] = useState(false);
+    const [videoConverterLoading, setVideoConverterLoading] = useState(false);
     const [activeChallenges, setActiveChallenges] = useState([]);
     const [selectedChallengeId, setSelectedChallengeId] = useState("");
     const [challengesLoading, setChallengesLoading] = useState(true);
@@ -175,20 +179,7 @@ export default function NewRecipePage() {
                         setDescription(recipeData.description || "");
                         setCookTime(String(recipeData.time || 25));
                         setServings(String(recipeData.servings || 1));
-                        const parsedMedia = (recipeData.images || []).map((url) => {
-                            const filePart = url.split('%2F').pop()?.split('?')[0] || "media";
-                            const decodedName = decodeURIComponent(filePart);
-                            const name = decodedName.replace(/^\d+_/, '') || "Uploaded Media";
-                            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
-                            
-                            return {
-                                id: createId(),
-                                name,
-                                type: isVideo ? "video" : "image",
-                                url,
-                            };
-                        });
-                        setMediaItems(parsedMedia);
+                        setMediaItems(parseMediaItemsForEdit(recipeData.images || []));
 
                         const backendTags = recipeData.tags || [];
                         setAllergens(backendTags.filter((t) => ALLERGEN_OPTIONS.includes(t)));
@@ -338,6 +329,62 @@ export default function NewRecipePage() {
         setter((previous) => previous.filter((existing) => existing !== tag));
     };
 
+    const handleApplyConvertedRecipe = (convertedRecipe) => {
+        if (convertedRecipe.recipeName) {
+            setRecipeName(convertedRecipe.recipeName);
+        }
+
+        if (convertedRecipe.description) {
+            setDescription(convertedRecipe.description);
+        }
+
+        setCookTime(convertedRecipe.cookTime);
+        setServings(convertedRecipe.servings);
+
+        const nextIngredients = (convertedRecipe.ingredientRows.length > 0
+            ? convertedRecipe.ingredientRows
+            : [createInitialIngredient()]
+        ).map((ingredient) => ({
+            id: createId(),
+            name: ingredient.name,
+            amount: ingredient.amount,
+            unit: ingredient.unit,
+        }));
+
+        setIngredientRows(nextIngredients);
+
+        const availableIngredientNames = new Set(nextIngredients.map((ingredient) => ingredient.name.trim()).filter(Boolean));
+
+        const nextSteps = (convertedRecipe.steps.length > 0
+            ? convertedRecipe.steps
+            : [createInitialStep()]
+        ).map((step) => ({
+            id: createId(),
+            instruction: step.instruction || "",
+            ingredientNames: (step.ingredientNames || []).filter((ingredientName) => availableIngredientNames.has(ingredientName)),
+        }));
+
+        setSteps(nextSteps);
+
+        const allergenTags = (convertedRecipe.allergens || []).map(normalizeTag).filter(Boolean);
+        const foodTypeTags = (convertedRecipe.foodTypes || []).map(normalizeTag).filter(Boolean);
+        const cuisineTags = (convertedRecipe.cuisineTypes || []).map(normalizeTag).filter(Boolean);
+
+        setAllergens((previous) => appendUniqueTags(previous, allergenTags));
+        setCuisineTypes((previous) => appendUniqueTags(previous, cuisineTags));
+        setFoodTypes((previous) => appendUniqueTags(previous, foodTypeTags));
+
+        setErrors((previous) => ({
+            ...previous,
+            recipeName: undefined,
+            description: undefined,
+            time: undefined,
+            servings: undefined,
+            ingredients: undefined,
+            steps: undefined,
+        }));
+    };
+
     const handleSubmit = async () => {
         const nextErrors = getValidationErrors({
             recipeName,
@@ -403,6 +450,8 @@ export default function NewRecipePage() {
                         description={description}
                         onRecipeNameChange={setRecipeName}
                         onDescriptionChange={setDescription}
+                        onOpenVideoConverter={() => setIsVideoConverterOpen(true)}
+                        videoConverterLoading={videoConverterLoading}
                         errors={errors}
                     />
 
@@ -482,6 +531,14 @@ export default function NewRecipePage() {
                     </Button>
                 </div>
             </main>
+
+            <VideoConverterDialog
+                open={isVideoConverterOpen}
+                onOpenChange={setIsVideoConverterOpen}
+                userId={user.uid}
+                onRecipeConverted={handleApplyConvertedRecipe}
+                onConvertingChange={setVideoConverterLoading}
+            />
         </div>
     );
 }

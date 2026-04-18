@@ -7,16 +7,14 @@ import {
     CarouselNext,
     CarouselPrevious,
 } from "@/components/ui/carousel";
+import { normalizeMediaItems } from "@/lib/media";
 
 const FALLBACK_IMAGE = "https://placehold.co/1200x700?text=Recipe";
 
 export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe" }) {
     const mediaItems = useMemo(() => {
-        if (!Array.isArray(images) || images.length === 0) {
-            return [FALLBACK_IMAGE];
-        }
-
-        return images.filter(Boolean).length > 0 ? images.filter(Boolean) : [FALLBACK_IMAGE];
+        const normalized = normalizeMediaItems(images);
+        return normalized.length > 0 ? normalized : [{ url: FALLBACK_IMAGE, type: "image" }];
     }, [images]);
 
     const [api, setApi] = useState();
@@ -46,16 +44,26 @@ export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe"
             <Carousel setApi={setApi} opts={{ loop: mediaItems.length > 1 }} className="w-full">
                 <CarouselContent className="-ml-0">
                     {mediaItems.map((item, index) => (
-                        <CarouselItem key={`${item}-${index}`} className="pl-0">
+                        <CarouselItem key={`${item.url}-${index}`} className="pl-0">
                             <div className="relative overflow-hidden rounded-xl">
                                 <div className="relative aspect-[16/9] w-full bg-muted">
-                                    <Image
-                                        src={item}
-                                        alt={`${recipeName} image ${index + 1}`}
-                                        fill
-                                        sizes="(max-width: 1024px) 100vw, 960px"
-                                        className="object-cover"
-                                    />
+                                    {item.type === "video" ? (
+                                        <video
+                                            src={item.url}
+                                            controls
+                                            playsInline
+                                            className="absolute inset-0 h-full w-full object-cover"
+                                            aria-label={`${recipeName} video ${index + 1}`}
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={item.url}
+                                            alt={`${recipeName} image ${index + 1}`}
+                                            fill
+                                            sizes="(max-width: 1024px) 100vw, 960px"
+                                            className="object-cover"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </CarouselItem>
@@ -66,12 +74,12 @@ export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe"
                         <CarouselPrevious
                             variant="secondary"
                             className="-left-5 top-1/2 -translate-y-1/2"
-                            aria-label="Previous recipe image"
+                            aria-label="Previous recipe media"
                         />
                         <CarouselNext
                             variant="secondary"
                             className="-right-5 top-1/2 -translate-y-1/2"
-                            aria-label="Next recipe image"
+                            aria-label="Next recipe media"
                         />
                     </>
                 ) : null}
@@ -81,13 +89,13 @@ export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe"
                 <div className="flex items-center justify-center gap-1.5">
                     {mediaItems.map((item, index) => (
                         <button
-                            key={`${item}-${index}`}
+                            key={`${item.url}-${index}`}
                             type="button"
                             className={`h-2.5 w-2.5 rounded-full transition ${
                                 index === activeIndex ? "bg-primary" : "bg-border"
                             }`}
                             onClick={() => api?.scrollTo(index)}
-                            aria-label={`Show image ${index + 1}`}
+                            aria-label={`Show ${item.type} ${index + 1}`}
                         />
                     ))}
                 </div>

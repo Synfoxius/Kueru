@@ -220,7 +220,7 @@ const buildBaseQueryConstraints = (filters, pageLimit, lastDoc) => {
 };
 
 const recipeMatchesFilters = (recipe, filters, usersById) => {
-    if (recipe.status && recipe.status !== 'available') {
+    if (recipe.status && recipe.status !== 'available' && recipe.status !== 'Reported' && recipe.status !== 'reported') {
         return false;
     }
 
@@ -364,7 +364,15 @@ export const createRecipe = async (recipeData = {}) => {
     const servings = Number(recipeData.servings);
 
     const images = Array.isArray(recipeData.images)
-        ? recipeData.images.map((item) => String(item ?? '').trim()).filter(Boolean)
+        ? recipeData.images
+            .map((item) => {
+                // Accept both plain URL strings and { url, type } objects
+                if (typeof item === 'string') return { url: item.trim(), type: 'image' };
+                const url = String(item?.url ?? '').trim();
+                const type = item?.type === 'video' ? 'video' : 'image';
+                return url ? { url, type } : null;
+            })
+            .filter(Boolean)
         : [];
     const tags = normalizeStringArray(recipeData.tags);
     const ingredients = normalizeIngredientObject(recipeData.ingredients);
@@ -437,7 +445,14 @@ export const updateRecipe = async (recipeId, recipeData = {}) => {
     const servings = Number(recipeData.servings);
 
     const images = Array.isArray(recipeData.images)
-        ? recipeData.images.map((item) => String(item ?? '').trim()).filter(Boolean)
+        ? recipeData.images
+            .map((item) => {
+                if (typeof item === 'string') return { url: item.trim(), type: 'image' };
+                const url = String(item?.url ?? '').trim();
+                const type = item?.type === 'video' ? 'video' : 'image';
+                return url ? { url, type } : null;
+            })
+            .filter(Boolean)
         : [];
     const tags = normalizeStringArray(recipeData.tags);
     const ingredients = normalizeIngredientObject(recipeData.ingredients);

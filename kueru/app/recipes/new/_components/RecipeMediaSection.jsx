@@ -67,7 +67,7 @@ export default function RecipeMediaSection({
 
         const oversizedFile = filesToUpload.find((file) => file.size > MAX_MEDIA_SIZE_BYTES);
         if (oversizedFile) {
-            setUploadError(`File \"${oversizedFile.name}\" exceeds 15MB.`);
+            setUploadError(`File \"${oversizedFile.name}\" exceeds 100MB.`);
             return;
         }
 
@@ -124,7 +124,7 @@ export default function RecipeMediaSection({
                     <IconUpload className="size-6 text-primary" />
                     <span className="text-sm text-foreground">Click to upload media</span>
                     <span className="text-xs text-muted-foreground">Images or videos</span>
-                    <span className="text-[11px] text-muted-foreground">Up to {MAX_MEDIA_FILES} files, 15MB each</span>
+                    <span className="text-[11px] text-muted-foreground">Up to {MAX_MEDIA_FILES} files, 100MB each</span>
                 </button>
                 <input
                     ref={inputRef}

@@ -64,9 +64,12 @@ export const buildRecipePayload = ({
         })
         .filter(Boolean);
 
-    const mediaUrls = (mediaItems ?? [])
-        .map((item) => String(item?.url ?? "").trim())
-        .filter(Boolean);
+    const mediaItems_ = (mediaItems ?? [])
+        .filter((item) => String(item?.url ?? "").trim())
+        .map((item) => ({
+            url: String(item.url).trim(),
+            type: item.type === 'video' ? 'video' : 'image',
+        }));
 
     const normalizedTags = [...new Set((recipeTags ?? [])
         .map((tag) => normalizeName(tag))
@@ -78,7 +81,7 @@ export const buildRecipePayload = ({
         description: normalizedDescription,
         time: normalizedTime,
         servings: normalizedServings,
-        images: mediaUrls,
+        images: mediaItems_,
         tags: normalizedTags,
         ingredients: ingredientMap,
         steps: normalizedSteps,
