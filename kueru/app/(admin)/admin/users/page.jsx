@@ -14,9 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { IconChevronDown, IconTrash } from "@tabler/icons-react";
-
-const ROLE_VARIANT   = { admin: "default", chef: "secondary", customer: "outline" };
-const STATUS_VARIANT = { active: "default", disabled: "destructive" };
+import { ROLE_COLOR, STATUS_COLOR } from "../../_lib/badgeColors";
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -31,7 +29,7 @@ const columns = [
         key: "role",
         label: "Role",
         render: (row) => (
-            <Badge variant={ROLE_VARIANT[row.role] ?? "outline"}>{row.role}</Badge>
+            <Badge variant="outline" className={ROLE_COLOR[row.role] ?? ""}>{row.role}</Badge>
         ),
     },
     {
@@ -40,7 +38,7 @@ const columns = [
         render: (row) => {
             const status = row.status ?? "active";
             return (
-                <Badge variant={STATUS_VARIANT[status] ?? "outline"} className="capitalize">
+                <Badge variant="outline" className={`capitalize ${STATUS_COLOR[status] ?? ""}`}>
                     {status}
                 </Badge>
             );
@@ -50,7 +48,7 @@ const columns = [
         key: "verified",
         label: "Verified",
         render: (row) => (
-            <Badge variant={row.verified ? "default" : "outline"}>
+            <Badge variant="outline" className={row.verified ? STATUS_COLOR.active : "bg-slate-100 text-slate-600 border-slate-200"}>
                 {row.verified ? "Yes" : "No"}
             </Badge>
         ),
@@ -163,11 +161,12 @@ export default function UsersPage() {
             <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setDeleteTarget(row)}
                 disabled={isSelf}
             >
                 <IconTrash className="size-4" />
+                Delete
             </Button>
         </div>
         );

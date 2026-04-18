@@ -7,17 +7,7 @@ import DataTable from "../../_components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconEye } from "@tabler/icons-react";
-
-const DIFFICULTY_VARIANT = {
-    easy:   "secondary",
-    medium: "outline",
-    hard:   "destructive",
-};
-
-const STATUS_VARIANT = {
-    active:  "default",
-    expired: "outline",
-};
+import { STATUS_COLOR, DIFFICULTY_COLOR } from "../../_lib/badgeColors";
 
 const TYPE_LABELS = {
     individual: "Individual",
@@ -41,7 +31,7 @@ const columns = [
         key: "difficulty",
         label: "Difficulty",
         render: (row) => (
-            <Badge variant={DIFFICULTY_VARIANT[row.difficulty] ?? "outline"} className="capitalize">
+            <Badge variant="outline" className={`capitalize ${DIFFICULTY_COLOR[row.difficulty] ?? ""}`}>
                 {row.difficulty ?? "—"}
             </Badge>
         ),
@@ -50,7 +40,7 @@ const columns = [
         key: "status",
         label: "Status",
         render: (row) => (
-            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"} className="capitalize">
+            <Badge variant="outline" className={`capitalize ${STATUS_COLOR[row.status] ?? ""}`}>
                 {row.status ?? "—"}
             </Badge>
         ),
@@ -101,11 +91,13 @@ export default function AdminChallengesPage() {
 
     const renderActions = (row) => (
         <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
+            className="gap-1.5"
             onClick={() => router.push(`/admin/challenges/${row.id}`)}
         >
             <IconEye className="size-4" />
+            Show Details
         </Button>
     );
 

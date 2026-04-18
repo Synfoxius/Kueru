@@ -7,13 +7,7 @@ import DataTable from "../../_components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconEye } from "@tabler/icons-react";
-
-const CATEGORY_VARIANT = {
-    "Cooking Streaks": "default",
-    "Skill Badges":    "secondary",
-    "Exploration":     "outline",
-    "Milestones":      "outline",
-};
+import { CATEGORY_COLOR } from "../../_lib/badgeColors";
 
 const TRACKING_LABELS = {
     streak:      "Streak",
@@ -27,7 +21,7 @@ const columns = [
         key: "category",
         label: "Category",
         render: (row) => (
-            <Badge variant={CATEGORY_VARIANT[row.category] ?? "outline"}>
+            <Badge variant="outline" className={CATEGORY_COLOR[row.category] ?? ""}>
                 {row.category}
             </Badge>
         ),
@@ -68,11 +62,13 @@ export default function AdminAchievementsPage() {
 
     const renderActions = (row) => (
         <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
+            className="gap-1.5"
             onClick={() => router.push(`/admin/achievements/${row.id}`)}
         >
             <IconEye className="size-4" />
+            Show Details
         </Button>
     );
 

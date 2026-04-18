@@ -9,20 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { IconEye } from "@tabler/icons-react";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const STATUS_VARIANT = {
-    pending:  "secondary",
-    resolved: "default",
-};
-
-const TYPE_VARIANT = {
-    recipe:  "secondary",
-    post:    "outline",
-    comment: "outline",
-    user:    "default",
-};
+import { STATUS_COLOR, TARGET_TYPE_COLOR, FILTER_ACTIVE_COLOR } from "../../_lib/badgeColors";
 
 const FILTERS = [
     { value: "all",      label: "All" },
@@ -30,8 +17,6 @@ const FILTERS = [
     { value: "resolved", label: "Resolved" },
 ];
 
-// Maps targetType → the user-facing link path for that target.
-// Returns null for types that have no direct public link (e.g. comment).
 function targetLink(targetType, targetId) {
     switch (targetType) {
         case "recipe":  return `/recipes/${targetId}`;
@@ -39,8 +24,6 @@ function targetLink(targetType, targetId) {
         default:        return null;
     }
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -52,8 +35,6 @@ function formatDate(ts) {
         : "—";
 }
 
-// ── Columns ───────────────────────────────────────────────────────────────────
-
 const columns = [
     {
         key: "target",
@@ -63,7 +44,7 @@ const columns = [
             const label = row.targetName ?? row.targetId;
             return (
                 <div className="flex items-center gap-2">
-                    <Badge variant={TYPE_VARIANT[row.targetType] ?? "outline"} className="capitalize shrink-0">
+                    <Badge variant="outline" className={`capitalize shrink-0 ${TARGET_TYPE_COLOR[row.targetType] ?? ""}`}>
                         {row.targetType ?? "—"}
                     </Badge>
                     {href ? (
@@ -109,14 +90,12 @@ const columns = [
         key: "status",
         label: "Status",
         render: (row) => (
-            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"} className="capitalize">
+            <Badge variant="outline" className={`capitalize ${STATUS_COLOR[row.status] ?? ""}`}>
                 {row.status ?? "—"}
             </Badge>
         ),
     },
 ];
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
     const router = useRouter();
@@ -153,21 +132,19 @@ export default function ReportsPage() {
         [reports, activeFilter]
     );
 
-    const renderActions = (row) => {
-        return (
-            <div className="flex items-center justify-end gap-2">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5"
-                    onClick={() => router.push(`/admin/reports/${row.id}`)}
-                >
-                    <IconEye className="size-4" />
-                    Show Details
-                </Button>
-            </div>
-        );
-    };
+    const renderActions = (row) => (
+        <div className="flex items-center justify-end gap-2">
+            <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => router.push(`/admin/reports/${row.id}`)}
+            >
+                <IconEye className="size-4" />
+                Show Details
+            </Button>
+        </div>
+    );
 
     return (
         <div className="p-6">
@@ -176,7 +153,6 @@ export default function ReportsPage() {
                 {counts.pending} pending report{counts.pending !== 1 ? "s" : ""}
             </p>
 
-            {/* Status filter */}
             <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
                 {FILTERS.map((f) => (
                     <button
@@ -185,14 +161,12 @@ export default function ReportsPage() {
                         className={cn(
                             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                             activeFilter === f.value
-                                ? "bg-background text-foreground shadow-sm"
+                                ? (FILTER_ACTIVE_COLOR[f.value] ?? "bg-background text-foreground shadow-sm")
                                 : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         {f.label}
-                        <span className="ml-1.5 text-xs opacity-60">
-                            {counts[f.value] ?? 0}
-                        </span>
+                        <span className="ml-1.5 text-xs opacity-60">{counts[f.value] ?? 0}</span>
                     </button>
                 ))}
             </div>
