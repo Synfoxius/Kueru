@@ -112,6 +112,7 @@ export default function AdminChallengesPage() {
                 data={challenges}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["title"]}
                 emptyMessage="No challenges found."
             />
         </div>

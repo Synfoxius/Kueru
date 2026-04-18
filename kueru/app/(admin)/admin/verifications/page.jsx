@@ -130,6 +130,7 @@ export default function VerificationsPage() {
                 data={tableData}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["userId"]}
                 emptyMessage="No verification requests found."
             />
         </div>

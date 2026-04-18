@@ -176,6 +176,7 @@ export default function ReportsPage() {
                 data={filtered}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["reason", "reporterUsername", "targetName", "targetType"]}
                 emptyMessage="No reports found."
             />
         </div>
