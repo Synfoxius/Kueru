@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { IconClock, IconUsers, IconArrowUp } from "@tabler/icons-react";
+import { getPreviewImageUrl } from "@/lib/media";
 
 export default function RecipePreviewCard({ recipe, linkable = false }) {
     const name = linkable ? (
@@ -11,14 +12,16 @@ export default function RecipePreviewCard({ recipe, linkable = false }) {
         </Link>
     ) : recipe.name;
 
+    const imageUrl = getPreviewImageUrl(recipe.images, null);
+
     return (
         <div className="rounded-xl border border-border overflow-hidden bg-white shadow-sm">
 
             {/* Hero image */}
-            {recipe.images?.[0] ? (
+            {imageUrl ? (
                 <div className="relative w-full h-40">
                     <Image
-                        src={recipe.images[0]}
+                        src={imageUrl}
                         alt={recipe.name}
                         fill
                         sizes="(max-width: 768px) 100vw, 672px"

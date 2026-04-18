@@ -28,7 +28,7 @@ export const DEFAULT_STEP = {
 };
 
 export const MAX_MEDIA_FILES = 8;
-export const MAX_MEDIA_SIZE_BYTES = 15 * 1024 * 1024;
+export const MAX_MEDIA_SIZE_BYTES = 100 * 1024 * 1024;
 
 export const MIN_COOK_TIME = 1;
 export const MIN_SERVINGS = 1;

@@ -29,6 +29,7 @@ import IngredientsSection from "./_components/IngredientsSection";
 import StepsSection from "./_components/StepsSection";
 import RecipeChallengeSection from "./_components/RecipeChallengeSection";
 import { buildRecipePayload } from "./_utils/recipePayload";
+import { parseMediaItemsForEdit } from "@/lib/media";
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -175,20 +176,7 @@ export default function NewRecipePage() {
                         setDescription(recipeData.description || "");
                         setCookTime(String(recipeData.time || 25));
                         setServings(String(recipeData.servings || 1));
-                        const parsedMedia = (recipeData.images || []).map((url) => {
-                            const filePart = url.split('%2F').pop()?.split('?')[0] || "media";
-                            const decodedName = decodeURIComponent(filePart);
-                            const name = decodedName.replace(/^\d+_/, '') || "Uploaded Media";
-                            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.mov');
-                            
-                            return {
-                                id: createId(),
-                                name,
-                                type: isVideo ? "video" : "image",
-                                url,
-                            };
-                        });
-                        setMediaItems(parsedMedia);
+                        setMediaItems(parseMediaItemsForEdit(recipeData.images || []));
 
                         const backendTags = recipeData.tags || [];
                         setAllergens(backendTags.filter((t) => ALLERGEN_OPTIONS.includes(t)));
