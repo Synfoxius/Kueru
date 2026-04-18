@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { IconEye, IconRefresh, IconTrash } from "@tabler/icons-react";
-import { STATUS_COLOR, FILTER_ACTIVE_COLOR } from "../../_lib/badgeColors";
+import { STATUS_COLOR } from "../../_lib/badgeColors";
 
 const FILTERS = [
     { value: "all",       label: "All" },
@@ -154,7 +154,7 @@ export default function ForumPage() {
                         className={cn(
                             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                             activeFilter === f.value
-                                ? (FILTER_ACTIVE_COLOR[f.value] ?? "bg-background text-foreground shadow-sm")
+                                ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground hover:text-foreground"
                         )}
                     >

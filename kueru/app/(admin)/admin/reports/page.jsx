@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { IconEye } from "@tabler/icons-react";
-import { STATUS_COLOR, TARGET_TYPE_COLOR, FILTER_ACTIVE_COLOR } from "../../_lib/badgeColors";
+import { STATUS_COLOR, TARGET_TYPE_COLOR } from "../../_lib/badgeColors";
 
 const FILTERS = [
     { value: "all",      label: "All" },
@@ -161,7 +161,7 @@ export default function ReportsPage() {
                         className={cn(
                             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                             activeFilter === f.value
-                                ? (FILTER_ACTIVE_COLOR[f.value] ?? "bg-background text-foreground shadow-sm")
+                                ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground hover:text-foreground"
                         )}
                     >

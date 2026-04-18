@@ -51,17 +51,3 @@ export const CATEGORY_COLOR = {
     "Milestones":      "bg-purple-100 text-purple-700 border-purple-200",
 };
 
-/** Active color class for filter tab buttons, keyed by filter value. */
-export const FILTER_ACTIVE_COLOR = {
-    all:          "bg-background text-foreground shadow-sm",
-    available:    "bg-green-100 text-green-700",
-    active:       "bg-green-100 text-green-700",
-    approved:     "bg-green-100 text-green-700",
-    resolved:     "bg-teal-100 text-teal-700",
-    pending:      "bg-amber-100 text-amber-700",
-    under_review: "bg-blue-100 text-blue-700",
-    deleted:      "bg-red-100 text-red-700",
-    rejected:     "bg-red-100 text-red-700",
-    archived:     "bg-slate-100 text-slate-600",
-    expired:      "bg-slate-100 text-slate-600",
-};
