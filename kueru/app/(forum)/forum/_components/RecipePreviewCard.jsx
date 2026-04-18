@@ -6,7 +6,7 @@ import { IconClock, IconUsers, IconArrowUp } from "@tabler/icons-react";
 
 export default function RecipePreviewCard({ recipe, linkable = false }) {
     const name = linkable ? (
-        <Link href={`/recipe/${recipe.id}`} className="hover:text-primary hover:underline transition-colors">
+        <Link href={`/recipes/${recipe.id}`} className="hover:text-primary hover:underline transition-colors">
             {recipe.name}
         </Link>
     ) : recipe.name;

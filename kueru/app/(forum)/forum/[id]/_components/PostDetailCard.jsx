@@ -9,7 +9,7 @@ import { getRecipe } from "@/lib/db/recipeService";
 import { getUser, savePost, unsavePost } from "@/lib/db/userService";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled, IconFlag } from "@tabler/icons-react";
+import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, IconX, IconDots, IconTrash, IconBookmark, IconBookmarkFilled, IconFlag, IconChefHat } from "@tabler/icons-react";
 import ImageGallery from "./ImageGallery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ReportDialog from "@/components/ReportDialog";
@@ -43,6 +43,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [linkedRecipe, setLinkedRecipe] = useState(null);
+    const [recipeDeleted, setRecipeDeleted] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
 
     const isOwner = user?.uid === post.userId;
@@ -61,7 +62,13 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
 
     useEffect(() => {
         if (post.postType === "Recipe" && post.recipeId) {
-            getRecipe(post.recipeId).then(setLinkedRecipe);
+            getRecipe(post.recipeId).then((r) => {
+                if (!r || r.status === "deleted") {
+                    setRecipeDeleted(true);
+                } else {
+                    setLinkedRecipe(r);
+                }
+            });
         }
     }, [post.postType, post.recipeId]);
 
@@ -288,8 +295,15 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                     )}
 
                     {/* Recipe preview */}
-                    {post.postType === "Recipe" && post.recipeId && linkedRecipe && (
-                        <RecipePreviewCard recipe={linkedRecipe} linkable={true} />
+                    {post.postType === "Recipe" && post.recipeId && (
+                        recipeDeleted ? (
+                            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground italic">
+                                <IconChefHat className="size-4 shrink-0" />
+                                This recipe has been deleted.
+                            </div>
+                        ) : linkedRecipe && (
+                            <RecipePreviewCard recipe={linkedRecipe} linkable={true} />
+                        )
                     )}
 
                     {/* Video embed */}
