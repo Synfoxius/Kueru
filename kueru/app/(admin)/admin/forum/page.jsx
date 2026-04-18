@@ -7,14 +7,8 @@ import DataTable from "../../_components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { IconRefresh, IconTrash } from "@tabler/icons-react";
-
-const STATUS_VARIANT = {
-    available: "default",
-    pending: "secondary",
-    deleted: "destructive",
-    archived: "outline",
-};
+import { IconEye, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { STATUS_COLOR } from "../../_lib/badgeColors";
 
 const FILTERS = [
     { value: "all",       label: "All" },
@@ -43,7 +37,7 @@ const columns = [
         key: "status",
         label: "Status",
         render: (row) => (
-            <Badge variant={STATUS_VARIANT[row.status] ?? "outline"}>
+            <Badge variant="outline" className={`capitalize ${STATUS_COLOR[row.status] ?? ""}`}>
                 {row.status ?? "—"}
             </Badge>
         ),
@@ -117,26 +111,28 @@ export default function ForumPage() {
                 <Button
                     size="sm"
                     variant="outline"
+                    className="gap-1.5"
                     onClick={() => router.push(`/admin/forum/${row.id}`)}
                 >
-                    View
+                    <IconEye className="size-4" />
+                    Show Details
                 </Button>
                 <Button
                     variant="ghost"
                     size="sm"
                     disabled={isToggling}
-                    className={
+                    className={cn(
+                        "gap-1.5",
                         isDeleted
                             ? "text-green-600 hover:bg-green-50 hover:text-green-700"
                             : "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    }
+                    )}
                     onClick={() => handleToggleStatus(row)}
-                    title={isDeleted ? "Restore to available" : "Set as deleted"}
                 >
                     {isDeleted ? (
-                        <IconRefresh className="size-4" />
+                        <><IconRefresh className="size-4" /> Restore</>
                     ) : (
-                        <IconTrash className="size-4" />
+                        <><IconTrash className="size-4" /> Mark as Deleted</>
                     )}
                 </Button>
             </div>
@@ -150,7 +146,6 @@ export default function ForumPage() {
                 {posts.length} post{posts.length !== 1 ? "s" : ""} total
             </p>
 
-            {/* Status filter */}
             <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
                 {FILTERS.map((f) => (
                     <button
@@ -159,14 +154,12 @@ export default function ForumPage() {
                         className={cn(
                             "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                             activeFilter === f.value
-                                ? "bg-background text-foreground shadow-sm"
+                                ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         {f.label}
-                        <span className="ml-1.5 text-xs opacity-60">
-                            {counts[f.value]}
-                        </span>
+                        <span className="ml-1.5 text-xs opacity-60">{counts[f.value]}</span>
                     </button>
                 ))}
             </div>

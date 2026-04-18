@@ -15,14 +15,20 @@ import {
     IconMessage,
     IconShieldCheck,
     IconLogout,
+    IconTrophy,
+    IconBolt,
+    IconFlag,
 } from "@tabler/icons-react";
 
 const navLinks = [
-    { label: "Dashboard", href: "/admin/dashboard", icon: IconLayoutDashboard },
-    { label: "Users", href: "/admin/users", icon: IconUsers },
-    { label: "Recipes", href: "/admin/recipes", icon: IconBook },
-    { label: "Forum", href: "/admin/forum", icon: IconMessage },
+    { label: "Dashboard",     href: "/admin/dashboard",     icon: IconLayoutDashboard },
+    { label: "Users",         href: "/admin/users",         icon: IconUsers },
+    { label: "Recipes",       href: "/admin/recipes",       icon: IconBook },
+    { label: "Forum",         href: "/admin/forum",         icon: IconMessage },
     { label: "Verifications", href: "/admin/verifications", icon: IconShieldCheck },
+    { label: "Reports",       href: "/admin/reports",       icon: IconFlag },
+    { label: "Achievements",  href: "/admin/achievements",  icon: IconTrophy },
+    { label: "Challenges",    href: "/admin/challenges",    icon: IconBolt },
 ];
 
 export default function AdminSidebar() {
