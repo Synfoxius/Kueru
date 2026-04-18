@@ -15,14 +15,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IconArrowLeft, IconChevronDown, IconExternalLink } from "@tabler/icons-react";
-
-const STATUS_VARIANT = {
-    available: "default",
-    pending: "secondary",
-    deleted: "destructive",
-    archived: "outline",
-};
+import { Input } from "@/components/ui/input";
+import { IconArrowLeft, IconChevronDown, IconExternalLink, IconPlus, IconX } from "@tabler/icons-react";
+import { STATUS_COLOR } from "../../../_lib/badgeColors";
 
 const ALL_STATUSES = ["available", "pending", "deleted", "archived"];
 
@@ -67,6 +62,12 @@ export default function RecipeDetailPage() {
     const [pendingStatus, setPendingStatus] = useState(null);
     const [statusLoading, setStatusLoading] = useState(false);
 
+    // Tag editing
+    const [editingTags, setEditingTags] = useState(false);
+    const [editTags, setEditTags] = useState([]);
+    const [tagInput, setTagInput] = useState("");
+    const [tagsLoading, setTagsLoading] = useState(false);
+
     const fetchRecipe = useCallback(async () => {
         setLoading(true);
         try {
@@ -93,6 +94,48 @@ export default function RecipeDetailPage() {
             setPendingStatus(null);
         } finally {
             setStatusLoading(false);
+        }
+    };
+
+    const startEditingTags = () => {
+        setEditTags(recipe.tags ? [...recipe.tags] : []);
+        setTagInput("");
+        setEditingTags(true);
+    };
+
+    const cancelEditingTags = () => {
+        setEditingTags(false);
+        setTagInput("");
+    };
+
+    const addTag = () => {
+        const val = tagInput.trim().toLowerCase();
+        if (val && !editTags.includes(val)) {
+            setEditTags((prev) => [...prev, val]);
+        }
+        setTagInput("");
+    };
+
+    const handleTagInputKeyDown = (e) => {
+        if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            addTag();
+        }
+    };
+
+    const removeTag = (tag) => setEditTags((prev) => prev.filter((t) => t !== tag));
+
+    const saveTags = async () => {
+        setTagsLoading(true);
+        try {
+            await adminFetch(`/api/admin/recipes/${recipeId}`, {
+                method: "PATCH",
+                body: JSON.stringify({ tags: editTags }),
+            });
+            setRecipe((prev) => ({ ...prev, tags: editTags }));
+            setEditingTags(false);
+        } finally {
+            setTagsLoading(false);
         }
     };
 
@@ -128,7 +171,7 @@ export default function RecipeDetailPage() {
                     <h1 className="text-2xl font-bold">{r.name}</h1>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant={STATUS_VARIANT[r.status] ?? "outline"} className="text-sm px-3 py-1">
+                    <Badge variant="outline" className={`text-sm px-3 py-1 capitalize ${STATUS_COLOR[r.status] ?? ""}`}>
                         {r.status ?? "—"}
                     </Badge>
                     <DropdownMenu>
@@ -177,18 +220,77 @@ export default function RecipeDetailPage() {
                 </Card>
 
                 {/* Tags */}
-                {r.tags?.length > 0 && (
-                    <Card>
-                        <CardContent className="p-5 space-y-2">
+                <Card>
+                    <CardContent className="p-5 space-y-3">
+                        <div className="flex items-center justify-between">
                             <SectionHeading>Tags</SectionHeading>
-                            <div className="flex flex-wrap gap-1.5">
-                                {r.tags.map((tag) => (
-                                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                                ))}
+                            {!editingTags && (
+                                <Button variant="outline" size="sm" onClick={startEditingTags}>
+                                    Edit Tags
+                                </Button>
+                            )}
+                        </div>
+
+                        {editingTags ? (
+                            <div className="space-y-3">
+                                {/* Current tags with remove buttons */}
+                                <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                                    {editTags.length === 0 && (
+                                        <span className="text-sm text-muted-foreground">No tags — add one below</span>
+                                    )}
+                                    {editTags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                                        >
+                                            {tag}
+                                            <button
+                                                onClick={() => removeTag(tag)}
+                                                className="ml-0.5 rounded-full hover:bg-black/10 p-0.5 transition-colors"
+                                                aria-label={`Remove ${tag}`}
+                                            >
+                                                <IconX className="size-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Add tag input */}
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={handleTagInputKeyDown}
+                                        placeholder="Type a tag and press Enter"
+                                        className="h-8 text-sm"
+                                    />
+                                    <Button size="sm" variant="outline" onClick={addTag} className="gap-1 shrink-0">
+                                        <IconPlus className="size-3.5" /> Add
+                                    </Button>
+                                </div>
+
+                                {/* Save / Cancel */}
+                                <div className="flex gap-2">
+                                    <Button size="sm" onClick={saveTags} disabled={tagsLoading}>
+                                        {tagsLoading ? "Saving…" : "Save Tags"}
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={cancelEditingTags} disabled={tagsLoading}>
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                                {r.tags?.length > 0
+                                    ? r.tags.map((tag) => (
+                                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                                      ))
+                                    : <span className="text-sm text-muted-foreground">No tags</span>
+                                }
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {/* Ingredients */}
                 {ingredientEntries.length > 0 && (
