@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
 import {
     IconUser, IconAdjustments, IconLock, IconLogout, IconHistory,
     IconChevronRight, IconCircleCheck, IconAlertCircle,
@@ -10,7 +9,6 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { resetPassword } from "@/lib/firebase/auth";
-import { auth } from "@/lib/firebase/config";
 
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Button } from "@/components/ui/button";
@@ -40,7 +38,7 @@ function SettingRow({ icon: Icon, iconColor = "text-primary", label, description
 
 export default function SettingsPage() {
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { user, loading, handleSignOut } = useAuth();
 
     const [resetStatus, setResetStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
 
@@ -73,7 +71,7 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        await signOut(auth);
+        await handleSignOut();
         router.push("/");
     };
 
