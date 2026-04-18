@@ -6,6 +6,23 @@ import { NextResponse } from 'next/server';
 const VALID_ROLES    = ['admin', 'chef', 'customer'];
 const VALID_STATUSES = ['active', 'disabled'];
 
+export async function GET(request, { params }) {
+    const { error } = await verifyAdminRequest(request);
+    if (error) return error;
+
+    try {
+        const { userId } = await params;
+        const snap = await adminDB.collection('users').doc(userId).get();
+        if (!snap.exists) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+        return NextResponse.json({ user: { userId: snap.id, ...snap.data() } });
+    } catch (err) {
+        console.error('[admin/users GET single]', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
 export async function PATCH(request, { params }) {
     const { uid, error } = await verifyAdminRequest(request);
     if (error) return error;
