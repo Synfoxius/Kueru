@@ -163,6 +163,7 @@ export default function RecipesPage() {
                 data={filtered}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["name", "authorUsername"]}
                 emptyMessage="No recipes found."
             />
         </div>

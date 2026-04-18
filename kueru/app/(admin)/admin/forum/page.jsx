@@ -169,6 +169,7 @@ export default function ForumPage() {
                 data={filtered}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["title", "authorUsername"]}
                 emptyMessage="No forum posts found."
             />
         </div>

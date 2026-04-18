@@ -131,6 +131,7 @@ export default function UsersPage() {
                 data={users}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["username", "email"]}
                 emptyMessage="No users found."
             />
         </div>

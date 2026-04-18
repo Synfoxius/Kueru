@@ -83,6 +83,7 @@ export default function AdminAchievementsPage() {
                 data={achievements}
                 loading={loading}
                 renderActions={renderActions}
+                searchKeys={["title", "category"]}
                 emptyMessage="No achievements found."
             />
         </div>
