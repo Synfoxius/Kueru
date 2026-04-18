@@ -15,6 +15,8 @@ import {
     IconMessage,
     IconShieldCheck,
     IconLogout,
+    IconTrophy,
+    IconBolt,
 } from "@tabler/icons-react";
 
 const navLinks = [
@@ -23,6 +25,8 @@ const navLinks = [
     { label: "Recipes", href: "/admin/recipes", icon: IconBook },
     { label: "Forum", href: "/admin/forum", icon: IconMessage },
     { label: "Verifications", href: "/admin/verifications", icon: IconShieldCheck },
+    { label: "Achievements", href: "/admin/achievements", icon: IconTrophy },
+    { label: "Challenges", href: "/admin/challenges", icon: IconBolt },
 ];
 
 export default function AdminSidebar() {
