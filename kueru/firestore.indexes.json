@@ -125,7 +125,17 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "userChallenges",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "challengeId", "order": "ASCENDING" },
+        { "fieldPath": "contribution", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
+
+  
 }
