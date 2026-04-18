@@ -76,7 +76,7 @@ export const setRecipeVote = async (userId, recipeId, requestedVoteValue) => {
     });
 
     // Fire notification outside the transaction (transactions may retry)
-    if (result.hasUpvoted && result.wasNewUpvote && result.authorId) {
+    if (result.voteValue === 1 && result.wasNewUpvote && result.authorId) {
         await createNotification(result.authorId, userId, 'recipe_upvote', recipeId, {
             recipeName: result.recipeName,
         });

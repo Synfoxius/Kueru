@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, increment, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { createNotification } from './notificationService';
 
 const VOTES_COLLECTION = 'post_votes';
@@ -84,6 +84,22 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
             }
         }
     }
+};
+
+/**
+ * Get all post IDs upvoted by a user, newest first.
+ * @param {string} userId
+ * @returns {Promise<string[]>}
+ */
+export const getUpvotedPostIds = async (userId) => {
+    const q = query(
+        collection(db, VOTES_COLLECTION),
+        where('userId', '==', userId),
+        where('voteType', '==', 1),
+        orderBy('votedAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data().postId).filter(Boolean);
 };
 
 /**
