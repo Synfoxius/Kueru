@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IconChevronDown, IconTrash } from "@tabler/icons-react";
 
-const ROLE_VARIANT = { admin: "default", chef: "secondary", customer: "outline" };
+const ROLE_VARIANT   = { admin: "default", chef: "secondary", customer: "outline" };
+const STATUS_VARIANT = { active: "default", disabled: "destructive" };
 
 function formatDate(ts) {
     if (!ts) return "—";
@@ -32,6 +33,18 @@ const columns = [
         render: (row) => (
             <Badge variant={ROLE_VARIANT[row.role] ?? "outline"}>{row.role}</Badge>
         ),
+    },
+    {
+        key: "status",
+        label: "Status",
+        render: (row) => {
+            const status = row.status ?? "active";
+            return (
+                <Badge variant={STATUS_VARIANT[status] ?? "outline"} className="capitalize">
+                    {status}
+                </Badge>
+            );
+        },
     },
     {
         key: "verified",
@@ -81,6 +94,16 @@ export default function UsersPage() {
         );
     };
 
+    const handleStatusChange = async (userId, status) => {
+        await adminFetch(`/api/admin/users/${userId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status }),
+        });
+        setUsers((prev) =>
+            prev.map((u) => (u.userId === userId ? { ...u, status } : u))
+        );
+    };
+
     const handleDelete = async () => {
         if (!deleteTarget) return;
         setDeleteLoading(true);
@@ -97,6 +120,7 @@ export default function UsersPage() {
 
     const renderActions = (row) => {
         const isSelf = row.userId === currentUser?.uid;
+        const currentStatus = row.status ?? "active";
         return (
         <div className="flex items-center justify-end gap-2">
             <DropdownMenu>
@@ -113,6 +137,25 @@ export default function UsersPage() {
                             disabled={row.role === role}
                         >
                             Set {role}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1" disabled={isSelf}>
+                        Status <IconChevronDown className="size-3" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {["active", "disabled"].map((status) => (
+                        <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleStatusChange(row.userId, status)}
+                            disabled={currentStatus === status}
+                            className="capitalize"
+                        >
+                            Set {status}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
