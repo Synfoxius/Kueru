@@ -654,3 +654,37 @@ export const deleteRecipe = async (recipeId) => {
         await updateDoc(recipeRef, { status: 'deleted' });
     }
 };
+
+/**
+ * Fetches multiple recipes by their Firestore document IDs.
+ * Batches IDs into groups of 10 to stay within Firestore's 'in' operator limit.
+ * Preserves the original order of the input IDs.
+ *
+ * @param {string[]} recipeIds
+ * @returns {Promise<Array<{ id: string, name: string, createdAt: any, upvotes: number }>>}
+ */
+export const getRecipesByIds = async (recipeIds = []) => {
+    const unique = [...new Set(recipeIds.filter(Boolean))];
+    if (unique.length === 0) return [];
+
+    const chunks = [];
+    for (let i = 0; i < unique.length; i += 10) {
+        chunks.push(unique.slice(i, i + 10));
+    }
+
+    const snaps = await Promise.all(
+        chunks.map((batch) =>
+            getDocs(query(collection(db, RECIPES_COLLECTION), where(documentId(), 'in', batch)))
+        )
+    );
+
+    const byId = {};
+    snaps.forEach((snap) => {
+        snap.docs.forEach((d) => {
+            byId[d.id] = { id: d.id, ...d.data() };
+        });
+    });
+
+    // Return in the same order as the input IDs
+    return unique.map((id) => byId[id]).filter(Boolean);
+};
