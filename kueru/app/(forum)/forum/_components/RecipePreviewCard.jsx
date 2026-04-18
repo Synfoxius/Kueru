@@ -86,7 +86,7 @@ export default function RecipePreviewCard({ recipe, linkable = false }) {
                             {Object.entries(recipe.ingredients ?? {}).slice(0, 6).map(([name, [amount, unit]]) => (
                                 <li key={name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <span className="size-1 rounded-full bg-primary/40 shrink-0" />
-                                    <span className="font-medium text-foreground">{amount}{unit}</span>
+                                    <span className="font-medium text-foreground">{amount}{unit ? ` ${unit}` : ""}</span>
                                     {name}
                                 </li>
                             ))}

@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, getDoc, query, where, orderBy, getDocs, addDoc, updateDoc, deleteDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, orderBy, getDocs, addDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { createNotification } from './notificationService';
 
 const COMMENTS_COLLECTION = 'comments';
@@ -73,7 +73,11 @@ export const getRepliesByComment = async (parentCommentId) => {
 };
 
 export const deleteComment = async (commentId, postId) => {
-    await deleteDoc(doc(db, COMMENTS_COLLECTION, commentId));
+    await updateDoc(doc(db, COMMENTS_COLLECTION, commentId), {
+        deleted: true,
+        content: null,
+        userId: null,
+    });
     if (postId) {
         const postRef = doc(db, 'forum_posts', postId);
         const postSnap = await getDoc(postRef);
@@ -81,4 +85,5 @@ export const deleteComment = async (commentId, postId) => {
             await updateDoc(postRef, { commentsCount: increment(-1) });
         }
     }
+    return 1;
 };

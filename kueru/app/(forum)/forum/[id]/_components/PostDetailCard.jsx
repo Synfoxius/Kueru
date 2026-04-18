@@ -13,7 +13,7 @@ import { IconArrowUp, IconArrowDown, IconMessageCircle, IconPencil, IconCheck, I
 import ImageGallery from "./ImageGallery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ReportDialog from "@/components/ReportDialog";
-import { createReport } from "@/lib/db/reportService";
+import { createReport, hasUserReported } from "@/lib/db/reportService";
 import { toast } from "sonner";
 import RecipePreviewCard from "@/app/(forum)/forum/_components/RecipePreviewCard";
 
@@ -45,6 +45,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
     const [linkedRecipe, setLinkedRecipe] = useState(null);
     const [recipeDeleted, setRecipeDeleted] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [hasReported, setHasReported] = useState(false);
 
     const isOwner = user?.uid === post.userId;
 
@@ -77,6 +78,12 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
             getUser(user.uid).then((u) => {
                 setIsSaved(u?.savedPosts?.includes(post.id) ?? false);
             });
+        }
+    }, [user, post.id]);
+
+    useEffect(() => {
+        if (user) {
+            hasUserReported(post.id, user.uid).then(setHasReported);
         }
     }, [user, post.id]);
 
@@ -139,9 +146,17 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
     };
 
     const handleReport = async (reason, details) => {
-        await createReport(post.id, "post", user.uid, reason, details);
-        setShowReportDialog(false);
-        toast.success("Post reported. Our moderators will review it.");
+        try {
+            await createReport(post.id, "post", user.uid, reason, details);
+            setShowReportDialog(false);
+            setHasReported(true);
+            toast.success("Post reported. Our moderators will review it.");
+        } catch (e) {
+            if (e.message === "already_reported") {
+                setShowReportDialog(false);
+                toast.error("You have already reported this post.");
+            }
+        }
     };
 
     const tags = post.postType === "Discussion"
@@ -183,10 +198,12 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
                             )}
                             {!isOwner && (
                                 <DropdownMenuItem
-                                    className="gap-2 text-destructive focus:text-destructive"
-                                    onClick={() => setShowReportDialog(true)}
+                                    className={`gap-2 ${hasReported ? "text-muted-foreground" : "text-destructive focus:text-destructive"}`}
+                                    onClick={() => { if (!hasReported) { setShowReportDialog(true); } }}
+                                    disabled={hasReported}
                                 >
-                                    <IconFlag className="size-4" /> Report
+                                    <IconFlag className="size-4" />
+                                    {hasReported ? "Already reported" : "Report"}
                                 </DropdownMenuItem>
                             )}
                         </DropdownMenuContent>

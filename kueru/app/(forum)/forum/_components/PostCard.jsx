@@ -9,7 +9,7 @@ import { getUser, hidePost, unhidePost, savePost, unsavePost } from "@/lib/db/us
 import { getUserVoteOnTarget, castVote, removeVote } from "@/lib/db/voteService";
 import { deletePost } from "@/lib/db/forumService";
 import { getRecipe } from "@/lib/db/recipeService";
-import { createReport } from "@/lib/db/reportService";
+import { createReport, hasUserReported } from "@/lib/db/reportService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -39,6 +39,7 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
     const [isSaved, setIsSaved] = useState(false);
     const [recipeTags, setRecipeTags] = useState([]);
     const [recipeDeleted, setRecipeDeleted] = useState(false);
+    const [hasReported, setHasReported] = useState(false);
 
     const handleDelete = async () => {
         await deletePost(post.id);
@@ -66,6 +67,12 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
             getUser(post.userId).then((u) => { if (u) setUsername(u.username); });
         }
     }, [post.userId]);
+
+    useEffect(() => {
+        if (user) {
+            hasUserReported(post.id, user.uid).then(setHasReported);
+        }
+    }, [user, post.id]);
 
     useEffect(() => {
         if (post.postType === "Recipe" && post.recipeId) {
@@ -118,9 +125,17 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
     };
 
     const handleReport = async (reason, details) => {
-        await createReport(post.id, "post", user.uid, reason, details);
-        setShowReportDialog(false);
-        toast.success("Post reported. Our moderators will review it.");
+        try {
+            await createReport(post.id, "post", user.uid, reason, details);
+            setShowReportDialog(false);
+            setHasReported(true);
+            toast.success("Post reported. Our moderators will review it.");
+        } catch (e) {
+            if (e.message === "already_reported") {
+                setShowReportDialog(false);
+                toast.error("You have already reported this post.");
+            }
+        }
     };
 
     const handleHide = async () => {
@@ -282,8 +297,13 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
                     )}
                     {user && user.uid !== post.userId && (
                         <>
-                            <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => setShowReportDialog(true)}>
-                                <IconFlag className="size-4" /> Report
+                            <DropdownMenuItem
+                                className={`gap-2 ${hasReported ? "text-muted-foreground" : "text-destructive focus:text-destructive"}`}
+                                onClick={() => { if (!hasReported) { setShowReportDialog(true); } }}
+                                disabled={hasReported}
+                            >
+                                <IconFlag className="size-4" />
+                                {hasReported ? "Already reported" : "Report"}
                             </DropdownMenuItem>
                             <DropdownMenuItem className="gap-2" onClick={handleHide}>
                                 <IconEyeOff className="size-4" /> Hide

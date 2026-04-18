@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, updateDoc, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, getDoc, getDocs, query, where, doc } from 'firebase/firestore';
 
 const REPORTS_COLLECTION = 'reports';
 
@@ -20,7 +20,20 @@ const FLAGGABLE_TYPES = new Set(['post', 'recipe']);
  * @param {string} reason - predefined reason
  * @param {string|null} details - optional free text
  */
+export const hasUserReported = async (targetId, userId) => {
+    const q = query(
+        collection(db, REPORTS_COLLECTION),
+        where('targetId', '==', targetId),
+        where('userId', '==', userId)
+    );
+    const snap = await getDocs(q);
+    return !snap.empty;
+};
+
 export const createReport = async (targetId, targetType, userId, reason, details = null) => {
+    const alreadyReported = await hasUserReported(targetId, userId);
+    if (alreadyReported) { throw new Error('already_reported'); }
+
     await addDoc(collection(db, REPORTS_COLLECTION), {
         targetId,
         targetType,

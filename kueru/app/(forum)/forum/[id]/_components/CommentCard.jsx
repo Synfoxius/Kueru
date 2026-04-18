@@ -25,7 +25,7 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function CommentCard({ comment, currentUserId, postId, depth = 0, postDeleted = false }) {
+export default function CommentCard({ comment, currentUserId, postId, depth = 0, postDeleted = false, onCommentDeleted }) {
     const [username, setUsername] = useState(null);
     const [voteCount, setVoteCount] = useState(comment.upvotesCount ?? 0);
     const [userVote, setUserVote] = useState(null);
@@ -42,9 +42,11 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
     const isOwner = currentUserId === comment.userId;
 
     useEffect(() => {
-        getUser(comment.userId).then((u) => {
-            if (u) { setUsername(u.username); }
-        });
+        if (comment.userId) {
+            getUser(comment.userId).then((u) => {
+                if (u) { setUsername(u.username); }
+            });
+        }
     }, [comment.userId]);
 
     useEffect(() => {
@@ -100,21 +102,15 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
     };
 
     const handleDelete = async () => {
-        await deleteComment(comment.id, comment.postId);
+        const totalDeleted = await deleteComment(comment.id, comment.postId);
         setShowDeleteDialog(false);
         setDeleted(true);
         toast.success("Comment deleted.");
+        if (onCommentDeleted) { onCommentDeleted(totalDeleted); }
     };
 
     const atMaxDepth = depth >= MAX_DEPTH;
-
-    if (deleted) {
-        return (
-            <div className="py-4 text-xs text-muted-foreground italic">
-                [Comment deleted]
-            </div>
-        );
-    }
+    const isDeleted = deleted || comment.deleted;
 
     return (
         <>
@@ -124,31 +120,37 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
             <div className="flex items-start gap-3 py-4">
 
                 {/* Profile pic */}
-                <div className="flex items-center justify-center size-9 rounded-full bg-primary/10 shrink-0 text-sm font-bold text-primary">
-                    {username ? username[0].toUpperCase() : "?"}
+                <div className={`flex items-center justify-center size-9 rounded-full shrink-0 text-sm font-bold ${isDeleted ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                    {isDeleted ? "?" : (username ? username[0].toUpperCase() : "?")}
                 </div>
 
                 {/* Body */}
                 <div className="flex-1 min-w-0 flex flex-col gap-2">
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Link
-                            href={`/profile/${username ?? comment.userId}`}
-                            className="font-semibold text-foreground hover:text-primary hover:underline"
-                        >
-                            @{username ?? comment.userId}
-                        </Link>
-                        <span>·</span>
-                        <span>{timeAgo(comment.postedDateTime)}</span>
-                    </div>
+                    {isDeleted ? (
+                        <p className="text-sm text-muted-foreground italic">[Comment deleted]</p>
+                    ) : (
+                        <>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Link
+                                href={`/profile/${username ?? comment.userId}`}
+                                className="font-semibold text-foreground hover:text-primary hover:underline"
+                            >
+                                @{username ?? comment.userId}
+                            </Link>
+                            <span>·</span>
+                            <span>{timeAgo(comment.postedDateTime)}</span>
+                        </div>
 
-                    {/* Content */}
-                    <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
+                        {/* Content */}
+                        <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
+                        </>
+                    )}
 
                     {/* Actions row */}
                     <div className="flex items-center gap-3">
 
-                        {currentUserId && !postDeleted && (
+                        {!isDeleted && currentUserId && !postDeleted && (
                             <button
                                 onClick={() => setShowReplyInput((prev) => !prev)}
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
@@ -158,7 +160,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                             </button>
                         )}
 
-                        {isOwner && (
+                        {!isDeleted && isOwner && (
                             <button
                                 onClick={() => setShowDeleteDialog(true)}
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
@@ -209,21 +211,23 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                 {/* End body */}
 
                 {/* Vote column */}
-                <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <button
-                        onClick={() => handleVote(1)}
-                        className={`p-1 rounded transition-colors ${userVote === 1 ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-                    >
-                        <IconArrowUp className="size-4" />
-                    </button>
-                    <span className="text-xs font-semibold tabular-nums">{voteCount}</span>
-                    <button
-                        onClick={() => handleVote(-1)}
-                        className={`p-1 rounded transition-colors ${userVote === -1 ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
-                    >
-                        <IconArrowDown className="size-4" />
-                    </button>
-                </div>
+                {!isDeleted && (
+                    <div className="flex flex-col items-center gap-0.5 shrink-0">
+                        <button
+                            onClick={() => handleVote(1)}
+                            className={`p-1 rounded transition-colors ${userVote === 1 ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                        >
+                            <IconArrowUp className="size-4" />
+                        </button>
+                        <span className="text-xs font-semibold tabular-nums">{voteCount}</span>
+                        <button
+                            onClick={() => handleVote(-1)}
+                            className={`p-1 rounded transition-colors ${userVote === -1 ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+                        >
+                            <IconArrowDown className="size-4" />
+                        </button>
+                    </div>
+                )}
 
             </div>
             {/* End comment row */}
@@ -248,6 +252,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                                 postId={postId}
                                 depth={depth + 1}
                                 postDeleted={postDeleted}
+                                onCommentDeleted={onCommentDeleted}
                             />
                         ))}
                     </div>
