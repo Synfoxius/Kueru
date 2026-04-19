@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { loginWithEmail, loginWithGoogle, logout } from "@/lib/firebase/auth";
 import { getUser } from "@/lib/db/userService";
+import { toast } from "sonner";
 import { IconMail, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 import ConditionalNavbar from "@/components/ConditionalNavbar";
@@ -74,6 +75,7 @@ function LoginForm() {
             if (!userDoc || !userDoc.onboardingComplete) {
                 router.push("/onboarding");
             } else {
+                toast.success("Welcome back!");
                 router.push(returnTo || "/profile");
             }
         } catch (err) {
@@ -103,6 +105,7 @@ function LoginForm() {
             if (!existingDoc) {
                 router.push("/onboarding?google=1");
             } else if (existingDoc.onboardingComplete) {
+                toast.success("Welcome back!");
                 router.push(returnTo || "/profile");
             } else {
                 router.push("/onboarding");

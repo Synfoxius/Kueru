@@ -9,6 +9,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { resetPassword } from "@/lib/firebase/auth";
+import { toast } from "sonner";
 
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
+        toast.success("Successfully logged out.");
         await handleSignOut();
         router.push("/");
     };

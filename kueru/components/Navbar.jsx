@@ -4,9 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { subscribeUnreadCount } from "@/lib/db/notificationService";
 
 import {
@@ -50,7 +49,7 @@ const recipeLinks = [
 ];
 
 export default function Navbar() {
-    const { user, userDoc } = useAuth();
+    const { user, userDoc, handleSignOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const [unreadCount, setUnreadCount] = useState(0);
@@ -66,7 +65,8 @@ export default function Navbar() {
     const isForumActive = pathname.startsWith("/forum");
 
     const handleLogout = async () => {
-        await signOut(auth);
+        toast.success("Successfully logged out.");
+        await handleSignOut();
         router.push("/");
     };
 
