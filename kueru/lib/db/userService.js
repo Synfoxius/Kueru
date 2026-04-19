@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp, documentId, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, orderBy, startAfter, serverTimestamp, documentId, arrayUnion, arrayRemove, getCountFromServer } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
 const RECIPES_COLLECTION = 'recipes';
@@ -173,6 +173,38 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
         return chunks;
     };
 
+    const attachCreatedRecipeCounts = async (users = []) => {
+        if (!Array.isArray(users) || users.length === 0) {
+            return [];
+        }
+
+        const usersWithCounts = await Promise.all(
+            users.map(async (user) => {
+                try {
+                    const userId = user?.id || user?.userId;
+                    if (!userId) {
+                        return { ...user, createdRecipesCount: 0 };
+                    }
+
+                    const createdRecipesRef = collection(db, USERS_COLLECTION, userId, 'createdRecipes');
+                    const countSnap = await getCountFromServer(createdRecipesRef);
+
+                    return {
+                        ...user,
+                        createdRecipesCount: Number(countSnap.data().count ?? 0),
+                    };
+                } catch {
+                    return {
+                        ...user,
+                        createdRecipesCount: Number(user?.createdRecipesCount ?? 0),
+                    };
+                }
+            })
+        );
+
+        return usersWithCounts;
+    };
+
     export const getCertifiedChefs = async (lastDoc = null, limitCount = 5) => {
         const usersRef = collection(db, USERS_COLLECTION);
 
@@ -188,9 +220,11 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
 
         const q = query(usersRef, ...queryConstraints);
         const snap = await getDocs(q);
+        const users = snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() }));
+        const usersWithCounts = await attachCreatedRecipeCounts(users);
 
         return {
-            users: snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() })),
+            users: usersWithCounts,
             lastDoc: snap.docs[snap.docs.length - 1],
         };
     };
@@ -209,9 +243,11 @@ export const getSavedRecipes = async (userId, lastDoc = null, limitCount = 10) =
 
         const q = query(usersRef, ...queryConstraints);
         const snap = await getDocs(q);
+        const users = snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() }));
+        const usersWithCounts = await attachCreatedRecipeCounts(users);
 
         return {
-            users: snap.docs.map((userDoc) => ({ id: userDoc.id, ...userDoc.data() })),
+            users: usersWithCounts,
             lastDoc: snap.docs[snap.docs.length - 1],
         };
     };
@@ -269,5 +305,6 @@ export const searchUsers = async (searchTerm = '', role = 'all', limitCount = 20
 
     const q = query(usersRef, ...constraints);
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return attachCreatedRecipeCounts(users);
 };

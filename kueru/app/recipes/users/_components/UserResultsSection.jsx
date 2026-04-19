@@ -23,10 +23,6 @@ const getInitials = (username) => {
 };
 
 const getRecipeCount = (user) => {
-    if (Array.isArray(user?.createdRecipes)) {
-        return user.createdRecipes.length;
-    }
-
     return Number(user?.createdRecipesCount ?? 0);
 };
 
