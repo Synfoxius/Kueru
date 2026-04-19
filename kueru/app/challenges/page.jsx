@@ -211,10 +211,10 @@ export default function ChallengesPage() {
     };
 
     const filteredChallenges = challenges.filter((c) => {
+        if (!isActive(c)) return false;
         const joined = !!ucMap[c.id];
-        const active = isActive(c);
-        if (activeTab === "my") return joined && active;
-        if (activeTab === "available") return !joined && active;
+        if (activeTab === "my") return joined;
+        if (activeTab === "available") return !joined;
         return true;
     });
 
