@@ -122,7 +122,7 @@ export default function ChallengeDetailPage() {
         );
     }
 
-    if (!challenge) {
+    if (!challenge || !isActive(challenge)) {
         return (
             <div className="min-h-screen bg-muted/30">
                 <Navbar />
