@@ -16,7 +16,6 @@ import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
 import TrendingPanel from "./_components/TrendingPanel";
 import CategoriesPanel from "./_components/CategoriesPanel";
-import DevSeedButton from "./_components/DevSeedButton";
 
 // ── Placeholder data (replace with Firestore fetches later) ──────────────────
 const RECIPE_OF_THE_DAY = {
@@ -162,7 +161,6 @@ export default function ForumPage() {
                                         Create new Post
                                     </Button>
                                 </Link>
-                                <DevSeedButton />
                                 <TrendingPanel posts={trendingPosts} />
                                 <CategoriesPanel
                                     categories={categories}
@@ -237,7 +235,6 @@ export default function ForumPage() {
                             Create new Post
                         </Button>
                     </Link>
-                    <DevSeedButton />
                     <TrendingPanel posts={trendingPosts} />
                     <CategoriesPanel
                         categories={categories}
