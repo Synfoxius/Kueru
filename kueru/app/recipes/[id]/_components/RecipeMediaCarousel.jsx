@@ -19,6 +19,25 @@ export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe"
 
     const [api, setApi] = useState();
     const [activeIndex, setActiveIndex] = useState(0);
+    const [mediaDimensions, setMediaDimensions] = useState({});
+
+    const updateMediaDimensions = (index, width, height) => {
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+            return;
+        }
+
+        setMediaDimensions((previous) => {
+            const current = previous[index];
+            if (current?.width === width && current?.height === height) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                [index]: { width, height },
+            };
+        });
+    };
 
     useEffect(() => {
         if (!api) {
@@ -45,23 +64,30 @@ export default function RecipeMediaCarousel({ images = [], recipeName = "Recipe"
                 <CarouselContent className="-ml-0">
                     {mediaItems.map((item, index) => (
                         <CarouselItem key={`${item.url}-${index}`} className="pl-0">
-                            <div className="relative overflow-hidden rounded-xl">
-                                <div className="relative aspect-[16/9] w-full bg-muted">
+                            <div className="flex justify-center">
+                                <div className="inline-flex max-w-[960px] overflow-hidden rounded-xl bg-muted">
                                     {item.type === "video" ? (
                                         <video
                                             src={item.url}
                                             controls
                                             playsInline
-                                            className="absolute inset-0 h-full w-full object-cover"
+                                            onLoadedMetadata={(event) => {
+                                                updateMediaDimensions(index, event.currentTarget.videoWidth, event.currentTarget.videoHeight);
+                                            }}
+                                            className="block h-auto max-h-[540px] w-auto max-w-full object-contain"
                                             aria-label={`${recipeName} video ${index + 1}`}
                                         />
                                     ) : (
                                         <Image
                                             src={item.url}
                                             alt={`${recipeName} image ${index + 1}`}
-                                            fill
+                                            width={mediaDimensions[index]?.width ?? 1200}
+                                            height={mediaDimensions[index]?.height ?? 700}
+                                            onLoadingComplete={(image) => {
+                                                updateMediaDimensions(index, image.naturalWidth, image.naturalHeight);
+                                            }}
                                             sizes="(max-width: 1024px) 100vw, 960px"
-                                            className="object-cover"
+                                            className="block h-auto max-h-[540px] w-auto max-w-full object-contain"
                                         />
                                     )}
                                 </div>
