@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getAllRecipes } from "@/lib/db/recipeService";
-import { getPreviewImageUrl } from "@/lib/media";
+import { getFirstMediaItem } from "@/lib/media";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -39,13 +39,16 @@ export default function RecipeOfTheDay() {
 
     if (!recipe) { return null; }
 
+    const firstMedia = getFirstMediaItem(recipe.images);
+    const imageSrc = firstMedia?.type === "image" ? firstMedia.url : "/home1.jpg";
+
     return (
         <Card className="relative overflow-hidden w-full py-0">
             <CardContent className="p-0">
                 <div className="relative h-44 w-full bg-muted">
 
                     <Image
-                        src={getPreviewImageUrl(recipe.images, null) || "/home1.jpg"}
+                        src={imageSrc}
                         alt={recipe.name}
                         fill
                         className="object-cover brightness-60"
