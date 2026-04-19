@@ -156,6 +156,7 @@ export default function PostDetailPage({ params }) {
                                     comment={comment}
                                     currentUserId={user?.uid ?? null}
                                     postId={id}
+                                    onCommentCreated={() => setPost((prev) => prev ? { ...prev, commentsCount: (prev.commentsCount ?? 0) + 1 } : prev)}
                                     onCommentDeleted={(count) => setPost((prev) => prev ? { ...prev, commentsCount: Math.max(0, (prev.commentsCount ?? 0) - count) } : prev)}
                                 />
                             ))

@@ -61,12 +61,17 @@ export default function SingleCommentPage({ params }) {
         init();
     }, [postId, commentId]);
 
+    const bumpPostCommentCount = () => {
+        setPost((prev) => prev ? { ...prev, commentsCount: (prev.commentsCount ?? 0) + 1 } : prev);
+    };
+
     const handleReplySubmit = async () => {
         if (!commentText.trim() || !user) { return; }
         setSubmittingComment(true);
         try {
             await createComment(postId, user.uid, commentText.trim(), commentId);
             setCommentText("");
+            bumpPostCommentCount();
             await loadReplies();
         } finally {
             setSubmittingComment(false);
@@ -124,6 +129,7 @@ export default function SingleCommentPage({ params }) {
                             postId={postId}
                             depth={0}
                             postDeleted={!post}
+                            onCommentCreated={bumpPostCommentCount}
                         />
                     </div>
                 </div>
@@ -188,6 +194,7 @@ export default function SingleCommentPage({ params }) {
                                     postId={postId}
                                     depth={0}
                                     postDeleted={!post}
+                                    onCommentCreated={bumpPostCommentCount}
                                 />
                             ))
                         )}

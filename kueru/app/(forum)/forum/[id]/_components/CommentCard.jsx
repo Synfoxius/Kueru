@@ -25,7 +25,7 @@ function timeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function CommentCard({ comment, currentUserId, postId, depth = 0, postDeleted = false, onCommentDeleted }) {
+export default function CommentCard({ comment, currentUserId, postId, depth = 0, postDeleted = false, onCommentCreated, onCommentDeleted }) {
     const [username, setUsername] = useState(null);
     const [voteCount, setVoteCount] = useState(comment.upvotesCount ?? 0);
     const [userVote, setUserVote] = useState(null);
@@ -95,6 +95,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
             await createComment(postId, currentUserId, replyText.trim(), comment.id);
             setReplyText("");
             setShowReplyInput(false);
+            if (onCommentCreated) { onCommentCreated(); }
             await loadReplies();
         } finally {
             setSubmittingReply(false);
@@ -252,6 +253,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                                 postId={postId}
                                 depth={depth + 1}
                                 postDeleted={postDeleted}
+                                onCommentCreated={onCommentCreated}
                                 onCommentDeleted={onCommentDeleted}
                             />
                         ))}
