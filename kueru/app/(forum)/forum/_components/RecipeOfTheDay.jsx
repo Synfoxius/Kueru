@@ -56,7 +56,7 @@ export default function RecipeOfTheDay() {
                             ★ Recipe of the Day
                         </span>
                         <div>
-                            <Link href={`/recipe/${recipe.id}`} className="hover:underline underline-offset-2">
+                            <Link href={`/recipes/${recipe.id}`} className="hover:underline underline-offset-2">
                                 <h2 className="text-lg font-bold text-white leading-tight">{recipe.name}</h2>
                             </Link>
                             <Link href={`/profile/${recipe.username}`} className="hover:underline underline-offset-2">
