@@ -216,10 +216,20 @@ export default function PostCard({ post, onDeleted, isHidden = false, onHidden, 
 
                     {/* Video badge */}
                     {post.videoEmbed && (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted text-xs text-muted-foreground font-medium w-fit">
+                        <a
+                            href={
+                                post.videoEmbed.platform === "youtube"
+                                    ? `https://www.youtube.com/watch?v=${post.videoEmbed.id}`
+                                    : `https://vimeo.com/${post.videoEmbed.id}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted text-xs text-muted-foreground font-medium w-fit hover:bg-muted/80 hover:text-foreground transition-colors"
+                        >
                             <IconPlayerPlay className="size-3.5 shrink-0" />
                             {post.videoEmbed.platform === "youtube" ? "YouTube" : "Vimeo"} video
-                        </span>
+                        </a>
                     )}
 
                     {/* Recipe link */}

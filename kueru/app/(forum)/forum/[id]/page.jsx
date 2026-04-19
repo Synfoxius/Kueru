@@ -45,10 +45,11 @@ export default function PostDetailPage({ params }) {
     useEffect(() => {
         getPost(id)
             .then((data) => {
-                if (!data) { setError("Post not found."); return; }
+                if (!data) { setError("not_found"); return; }
+                if (data.deleted) { setError("deleted"); return; }
                 setPost(data);
             })
-            .catch(() => setError("Failed to load post. Please try again later."))
+            .catch(() => setError("failed"))
             .finally(() => setLoadingPost(false));
     }, [id]);
 
@@ -77,9 +78,15 @@ export default function PostDetailPage({ params }) {
     // ── Loading / error states ────────────────────────────────────────────────
     if (loadingPost) { return null; }
     if (error) {
+        const isDeleted = error === "deleted";
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
-                <p className="text-sm text-destructive">{error}</p>
+                <div className="flex flex-col items-center gap-4 text-center px-4">
+                    <p className={`text-sm ${isDeleted ? "text-muted-foreground" : "text-destructive"}`}>
+                        {isDeleted ? "This post has been deleted." : error === "not_found" ? "Post not found." : "Failed to load post. Please try again later."}
+                    </p>
+                    <Button variant="outline" onClick={() => router.back()}>Go Back</Button>
+                </div>
             </div>
         );
     }
