@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { recipeMatchesCondition } from './conditionUtil';
 
 // Geographic cuisine tags — excludes dietary entries that also appear in CUISINE_TYPE_OPTIONS
 const CUISINE_TAGS = new Set([
@@ -32,6 +33,11 @@ function subtractDays(dateStr, n) {
 export async function handleCount(userId, recipeId, recipe, achievement, currentProgress) {
     const recipesRef = collection(db, 'recipes');
     const { condition, goalValue } = achievement;
+
+    // Skip if the just-posted recipe doesn't satisfy the condition — the historical
+    // count can't have changed. This also guards against malformed/missing conditions
+    // in Firestore, which would otherwise fall through to counting every recipe.
+    if (!recipeMatchesCondition(recipe, condition)) return null;
 
     let count = 0;
     let linkedRecipeIds = [];
