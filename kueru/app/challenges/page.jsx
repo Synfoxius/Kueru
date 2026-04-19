@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -38,6 +38,7 @@ function ChallengeIcon({ iconName, className }) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isActive(challenge) {
+    if (challenge.status === "expired") return false;
     const now = Date.now();
     const end = challenge.endDate?.toDate?.() ?? new Date(challenge.endDate);
     const start = challenge.startDate?.toDate?.() ?? new Date(challenge.startDate);
@@ -52,22 +53,13 @@ function daysLeft(challenge) {
     return `${diff}d left`;
 }
 
-function formatDateRange(challenge) {
-    const opts = { month: "short", day: "numeric", year: "numeric" };
-    const start = (challenge.startDate?.toDate?.() ?? new Date(challenge.startDate))
-        .toLocaleDateString("en-US", opts);
-    const end = (challenge.endDate?.toDate?.() ?? new Date(challenge.endDate))
-        .toLocaleDateString("en-US", opts);
-    return `${start} – ${end}`;
-}
-
 // ── Challenge Card ────────────────────────────────────────────────────────────
 
 function ChallengeCard({ challenge, userChallenge, onJoin, joiningId }) {
     const active = isActive(challenge);
     const joined = !!userChallenge;
     const timeLabel = daysLeft(challenge);
-    const ended = timeLabel === "Ended";
+    const ended = !active;
 
     const userContribution = userChallenge?.contribution ?? 0;
     const progressValue = challenge.goalValue > 0
@@ -79,7 +71,6 @@ function ChallengeCard({ challenge, userChallenge, onJoin, joiningId }) {
             <CardContent className="p-5 flex flex-col gap-4">
                 {/* Header row */}
                 <div className="flex items-start gap-3">
-                    {/* Icon */}
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${joined ? "bg-primary" : "bg-muted"}`}>
                         <ChallengeIcon
                             iconName={challenge.iconName}
@@ -87,16 +78,16 @@ function ChallengeCard({ challenge, userChallenge, onJoin, joiningId }) {
                         />
                     </div>
 
-                    {/* Title + meta */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                            <p className="font-semibold text-sm leading-snug">{challenge.title}</p>
-                            {active && !ended && (
+                            <Link href={`/challenges/${challenge.id}`} className="font-semibold text-sm leading-snug hover:underline">
+                                {challenge.title}
+                            </Link>
+                            {active ? (
                                 <span className="shrink-0 rounded-md bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white whitespace-nowrap">
                                     {timeLabel}
                                 </span>
-                            )}
-                            {ended && (
+                            ) : (
                                 <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                                     Ended
                                 </span>
@@ -135,19 +126,24 @@ function ChallengeCard({ challenge, userChallenge, onJoin, joiningId }) {
                     </div>
                 )}
 
-                {/* Action button */}
+                {/* Action buttons */}
                 {joined ? (
                     <Button asChild variant="outline" className="w-full text-sm">
                         <Link href={`/challenges/${challenge.id}`}>View Progress</Link>
                     </Button>
                 ) : active ? (
-                    <Button
-                        className="w-full text-sm"
-                        onClick={() => onJoin(challenge.id)}
-                        disabled={joiningId === challenge.id}
-                    >
-                        {joiningId === challenge.id ? "Joining..." : "Join Challenge"}
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button asChild variant="outline" className="flex-1 text-sm">
+                            <Link href={`/challenges/${challenge.id}`}>View Details</Link>
+                        </Button>
+                        <Button
+                            className="flex-1 text-sm"
+                            onClick={() => onJoin(challenge.id)}
+                            disabled={joiningId === challenge.id}
+                        >
+                            {joiningId === challenge.id ? "Joining..." : "Join"}
+                        </Button>
+                    </div>
                 ) : (
                     <Button asChild variant="outline" className="w-full text-sm">
                         <Link href={`/challenges/${challenge.id}`}>View Details</Link>
@@ -171,7 +167,7 @@ export default function ChallengesPage() {
     const { user, loading: authLoading } = useAuth();
 
     const [challenges, setChallenges] = useState([]);
-    const [ucMap, setUcMap] = useState({}); // challengeId → userChallenge doc
+    const [ucMap, setUcMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("all");
     const [joiningId, setJoiningId] = useState(null);
@@ -180,20 +176,20 @@ export default function ChallengesPage() {
         if (!authLoading && !user) router.replace("/login");
     }, [authLoading, user, router]);
 
-    const load = useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
-        const [allChallenges, userChallenges] = await Promise.all([
-            getAllChallenges(),
-            getUserChallenges(user.uid),
-        ]);
-        const map = Object.fromEntries(userChallenges.map((uc) => [uc.challengeId ?? uc.id, uc]));
-        setChallenges(allChallenges);
-        setUcMap(map);
-        setLoading(false);
-    }, [user]);
+    // Fetch all challenges immediately — doesn't need auth
+    useEffect(() => {
+        getAllChallenges()
+            .then(setChallenges)
+            .finally(() => setLoading(false));
+    }, []);
 
-    useEffect(() => { load(); }, [load]);
+    // Fetch user's joined challenges separately after auth resolves
+    useEffect(() => {
+        if (!user) return;
+        getUserChallenges(user.uid).then((ucs) => {
+            setUcMap(Object.fromEntries(ucs.map((uc) => [uc.challengeId ?? uc.id, uc])));
+        });
+    }, [user]);
 
     const handleJoin = async (challengeId) => {
         setJoiningId(challengeId);
@@ -239,7 +235,6 @@ export default function ChallengesPage() {
         <div className="min-h-screen bg-muted/30">
             <Navbar />
             <main className="mx-auto max-w-5xl px-4 py-8">
-                {/* Header */}
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">Challenges</h1>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -247,7 +242,6 @@ export default function ChallengesPage() {
                     </p>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex gap-2 mb-6">
                     {TABS.map((tab) => (
                         <button
@@ -264,7 +258,6 @@ export default function ChallengesPage() {
                     ))}
                 </div>
 
-                {/* Grid */}
                 {filteredChallenges.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-12 text-center">
                         {activeTab === "my"
@@ -274,16 +267,35 @@ export default function ChallengesPage() {
                             : "No challenges found."}
                     </p>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {filteredChallenges.map((challenge) => (
-                            <ChallengeCard
-                                key={challenge.id}
-                                challenge={challenge}
-                                userChallenge={ucMap[challenge.id] ?? null}
-                                onJoin={handleJoin}
-                                joiningId={joiningId}
-                            />
-                        ))}
+                    <div className="space-y-8">
+                        {[
+                            { key: "individual", label: "Individual Challenges", description: "Work toward your own goal." },
+                            { key: "collective", label: "Collaborative Challenges", description: "Contribute to a shared community goal." },
+                        ].map(({ key, label, description }) => {
+                            const group = filteredChallenges.filter(
+                                (c) => (c.challengeType ?? "individual") === key
+                            );
+                            if (group.length === 0) return null;
+                            return (
+                                <section key={key}>
+                                    <div className="mb-3">
+                                        <h2 className="text-lg font-semibold">{label}</h2>
+                                        <p className="text-xs text-muted-foreground">{description}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {group.map((challenge) => (
+                                            <ChallengeCard
+                                                key={challenge.id}
+                                                challenge={challenge}
+                                                userChallenge={ucMap[challenge.id] ?? null}
+                                                onJoin={handleJoin}
+                                                joiningId={joiningId}
+                                            />
+                                        ))}
+                                    </div>
+                                </section>
+                            );
+                        })}
                     </div>
                 )}
             </main>

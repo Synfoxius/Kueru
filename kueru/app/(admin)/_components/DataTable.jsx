@@ -29,6 +29,7 @@ export default function DataTable({
     renderActions,
     emptyMessage = "No data found.",
     searchKeys,
+    headerAction,
 }) {
     const [query, setQuery] = useState("");
     const colSpan = columns.length + (renderActions ? 1 : 0);
@@ -46,15 +47,20 @@ export default function DataTable({
 
     return (
         <div className="space-y-3">
-            {searchKeys?.length > 0 && (
-                <div className="relative w-full max-w-sm">
-                    <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Search…"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        className="pl-8"
-                    />
+            {(searchKeys?.length > 0 || headerAction) && (
+                <div className="flex items-center justify-between gap-4">
+                    {searchKeys?.length > 0 && (
+                        <div className="relative w-full max-w-sm">
+                            <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                placeholder="Search…"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                className="pl-8"
+                            />
+                        </div>
+                    )}
+                    {headerAction && <div className="shrink-0">{headerAction}</div>}
                 </div>
             )}
             <div className="overflow-x-auto rounded-md border border-border">
