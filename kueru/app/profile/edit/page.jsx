@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { IconCamera, IconUpload, IconShieldCheck, IconCircleCheck, IconArrowLeft } from "@tabler/icons-react";
+import { IconCamera, IconUpload, IconShieldCheck, IconArrowLeft, IconCircleCheck } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { updateUser, getUserByUsername } from "@/lib/db/userService";
@@ -30,7 +30,7 @@ export default function EditProfilePage() {
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const [savedUsername, setSavedUsername] = useState(null);
     const [error, setError] = useState("");
     const [verificationStatus, setVerificationStatus] = useState(null); // null | 'pending' | 'under_review' | 'rejected'
     const [rejectionReason, setRejectionReason] = useState("");
@@ -88,7 +88,7 @@ export default function EditProfilePage() {
             }
 
             await updateUser(user.uid, { displayName, username, bio, profileImage });
-            setSaved(true);
+            setSavedUsername(username);
         } catch {
             setError("Failed to save changes. Please try again.");
         } finally {
@@ -118,7 +118,7 @@ export default function EditProfilePage() {
                     <div className="flex items-center justify-between">
                         <h1 className="text-2xl font-bold">Edit Profile</h1>
                         <button
-                            onClick={() => router.back()}
+                            onClick={() => router.push(`/profile/${savedUsername ?? userDoc?.username}`)}
                             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <IconArrowLeft className="size-4" /> Back
@@ -275,7 +275,7 @@ export default function EditProfilePage() {
 
                 {/* Error / Success */}
                 {error && <p className="text-sm text-destructive">{error}</p>}
-                {saved && (
+                {savedUsername && (
                     <p className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
                         <IconCircleCheck className="size-4" /> Profile saved successfully
                     </p>
@@ -292,7 +292,7 @@ export default function EditProfilePage() {
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={() => router.back()}
+                        onClick={() => router.push(`/profile/${savedUsername ?? userDoc?.username}`)}
                         disabled={saving}
                     >
                         Cancel

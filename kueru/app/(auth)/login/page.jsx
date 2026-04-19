@@ -41,7 +41,7 @@ function LoginForm() {
             logout();
             return;
         }
-        if (onboardingComplete) router.replace(returnTo || "/profile");
+        if (onboardingComplete) router.replace(returnTo || `/profile/${userDoc.username}`);
         else if (onboardingComplete === false || onboardingComplete === null) router.replace("/onboarding");
     }, [user, userDoc, onboardingComplete, authLoading, router, returnTo]);
 
@@ -62,7 +62,7 @@ function LoginForm() {
                 router.push("/onboarding");
             } else {
                 toast.success("Welcome back!");
-                router.push(returnTo || "/profile");
+                router.push(returnTo || `/profile/${userDoc.username}`);
             }
         } catch (err) {
             setError("Invalid email or password. Please try again.");
@@ -86,7 +86,7 @@ function LoginForm() {
                 router.push("/onboarding?google=1");
             } else if (existingDoc.onboardingComplete) {
                 toast.success("Welcome back!");
-                router.push(returnTo || "/profile");
+                router.push(returnTo || `/profile/${existingDoc.username}`);
             } else {
                 router.push("/onboarding");
             }
