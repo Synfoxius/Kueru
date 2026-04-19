@@ -155,7 +155,7 @@ export default function Navbar() {
                                             className={`${navigationMenuTriggerStyle()} ${isRecipeActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""} data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:hover:bg-primary/90 data-[state=open]:focus:bg-primary/90`}
                                         >
                                             <span>Recipes</span>
-                                            <IconChevronDown className="size-3.5 md:size-4 opacity-70 transition-transform duration-200 data-[state=open]:rotate-180" />
+                                            <IconChevronDown className="size-4 opacity-70" />
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="min-w-[180px]">

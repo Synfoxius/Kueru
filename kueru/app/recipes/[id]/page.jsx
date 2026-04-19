@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
     IconArrowBigDown,
     IconArrowBigUp,
@@ -41,8 +41,10 @@ const formatCount = (value) => Number(value || 0).toLocaleString();
 export default function RecipeDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const recipeId = String(params?.id || "");
+    const isFromEditFlow = searchParams.get("from") === "edit";
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -145,12 +147,17 @@ export default function RecipeDetailPage() {
     });
 
     const handleBack = useCallback(() => {
+        if (isFromEditFlow) {
+            router.push(recipe?.username ? `/profile/${recipe.username}` : "/profile");
+            return;
+        }
+
         if (typeof window !== "undefined" && window.history.length > 1) {
             router.back();
             return;
         }
         router.push("/recipes/discover");
-    }, [router]);
+    }, [isFromEditFlow, recipe?.username, router]);
 
     const onDesiredServingsChange = (event) => {
         const nextValue = Number(event.target.value);

@@ -420,7 +420,7 @@ export default function NewRecipePage() {
 
             if (mode === 'edit' && editRecipeId) {
                 await updateRecipe(editRecipeId, payload);
-                router.push(`/recipes/${editRecipeId}`);
+                router.push(`/recipes/${editRecipeId}?from=edit`);
             } else {
                 const { recipeId } = await createRecipe(payload);
                 processAchievementsOnRecipePost(user.uid, recipeId, payload).catch(console.error);
