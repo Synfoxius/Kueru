@@ -40,6 +40,7 @@ export default function RecipeOfTheDay() {
     if (!recipe) { return null; }
 
     const firstMedia = getFirstMediaItem(recipe.images);
+    const isVideo = firstMedia?.type === "video";
     const imageSrc = firstMedia?.type === "image" ? firstMedia.url : "/home1.jpg";
 
     return (
@@ -47,12 +48,23 @@ export default function RecipeOfTheDay() {
             <CardContent className="p-0">
                 <div className="relative h-44 w-full bg-muted">
 
-                    <Image
-                        src={imageSrc}
-                        alt={recipe.name}
-                        fill
-                        className="object-cover brightness-60"
-                    />
+                    {isVideo ? (
+                        <video
+                            src={firstMedia.url}
+                            className="absolute inset-0 w-full h-full object-cover brightness-60"
+                            muted
+                            loop
+                            playsInline
+                            autoPlay
+                        />
+                    ) : (
+                        <Image
+                            src={imageSrc}
+                            alt={recipe.name}
+                            fill
+                            className="object-cover brightness-60"
+                        />
+                    )}
 
                     <div className="absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
                         <span className="w-fit rounded-full bg-yellow-400 px-3 py-0.5 text-xs font-semibold text-black">
