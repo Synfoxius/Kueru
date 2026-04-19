@@ -555,6 +555,7 @@ export const getRecipesByUser = async (userId, lastDoc = null, limitCount = 10) 
 
     let queryConstraints = [
         where('userId', '==', userId),
+        where('status', '==', 'available'),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
     ];
