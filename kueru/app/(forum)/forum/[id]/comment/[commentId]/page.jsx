@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { getPost } from "@/lib/db/forumService";
@@ -16,6 +17,7 @@ import BackToForumButton from "../../../_components/BackToForumButton";
 export default function SingleCommentPage({ params }) {
     const { id: postId, commentId } = use(params);
     const { user } = useAuth();
+    const router = useRouter();
 
     const [post, setPost] = useState(null);
     const [rootComment, setRootComment] = useState(null);
@@ -98,7 +100,7 @@ export default function SingleCommentPage({ params }) {
 
                 {/* Post card */}
                 {post ? (
-                    <PostDetailCard post={post} />
+                    <PostDetailCard post={post} onDeleted={() => router.push("/forum")} />
                 ) : (
                     <div className="rounded-xl border border-border bg-white shadow-sm px-6 py-5">
                         <p className="text-sm text-muted-foreground italic">[This post has been deleted]</p>

@@ -16,16 +16,7 @@ import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
 import TrendingPanel from "./_components/TrendingPanel";
 import CategoriesPanel from "./_components/CategoriesPanel";
-
-// ── Placeholder data (replace with Firestore fetches later) ──────────────────
-const RECIPE_OF_THE_DAY = {
-    name: "Mediterranean Quinoa Bowl",
-    description: "A vibrant nutrition bowl packed with roasted vegetables, crispy chickpeas, and a creamy tahini dressing.",
-    username: "healthychef",
-    images: [],
-    tags: ["Healthy", "Vegan", "Mediterranean"],
-};
-
+\
 
 const SORT_OPTIONS = ["Most Popular", "Newest", "Most Comments"];
 
