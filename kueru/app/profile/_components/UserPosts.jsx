@@ -24,6 +24,7 @@ function UserPosts({ userId, hiddenPostIds = [] }) {
         if (!userId) { return; }
         getPostsByUser(userId)
             .then(({ posts }) => setPosts(posts))
+            .catch((err) => console.error('[UserPosts] getPostsByUser failed:', err))
             .finally(() => setLoadingPosts(false));
     }, [userId]);
 

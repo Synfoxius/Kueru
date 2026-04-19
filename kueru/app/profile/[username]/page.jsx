@@ -48,7 +48,7 @@ export default function ProfilePage() {
 
             setProfileUser(user);
 
-            const recipesData = await getRecipesByUser(user.userId).catch(() => ({ recipes: [] }));
+            const recipesData = await getRecipesByUser(user.userId).catch((err) => { console.error('[Profile] getRecipesByUser failed:', err); return { recipes: [] }; });
             setRecipes(recipesData.recipes ?? []);
 
             if (currentUser && currentUser.uid !== user.userId) {

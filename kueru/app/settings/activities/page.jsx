@@ -85,6 +85,8 @@ export default function ActivitiesPage() {
                         break;
                     }
                 }
+            } catch (err) {
+                console.error(`[Activities] Failed to load tab "${activeTab}":`, err);
             } finally {
                 setTabLoading(prev => ({ ...prev, [activeTab]: false }));
             }

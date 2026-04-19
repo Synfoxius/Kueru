@@ -54,6 +54,7 @@ export default function Page() {
                 if (!isMounted) {
                     return;
                 }
+                console.error('[Discover] Failed to load:', fetchError);
                 setError(fetchError?.message || "Unable to load discovery data right now.");
             } finally {
                 if (isMounted) {
