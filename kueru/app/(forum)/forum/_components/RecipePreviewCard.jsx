@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { IconClock, IconUsers, IconArrowUp } from "@tabler/icons-react";
-import { getPreviewImageUrl } from "@/lib/media";
+import { getFirstMediaItem } from "@/lib/media";
 
 export default function RecipePreviewCard({ recipe, linkable = false }) {
     const name = linkable ? (
@@ -12,23 +12,34 @@ export default function RecipePreviewCard({ recipe, linkable = false }) {
         </Link>
     ) : recipe.name;
 
-    const imageUrl = getPreviewImageUrl(recipe.images, null);
+    const firstMedia = getFirstMediaItem(recipe.images);
 
     return (
         <div className="rounded-xl border border-border overflow-hidden bg-white shadow-sm">
 
-            {/* Hero image */}
-            {imageUrl ? (
+            {/* Hero media */}
+            {firstMedia ? (
                 <div className="relative w-full h-40">
-                    <Image
-                        src={imageUrl}
-                        alt={recipe.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 672px"
-                        className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <h3 className="absolute bottom-3 left-4 text-base font-bold text-white leading-snug">
+                    {firstMedia.type === "video" ? (
+                        <video
+                            src={firstMedia.url}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            muted
+                            loop
+                            playsInline
+                            autoPlay
+                        />
+                    ) : (
+                        <Image
+                            src={firstMedia.url}
+                            alt={recipe.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 672px"
+                            className="object-cover"
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                    <h3 className="absolute bottom-3 left-4 text-base font-bold text-white leading-snug pointer-events-none">
                         {name}
                     </h3>
                 </div>
