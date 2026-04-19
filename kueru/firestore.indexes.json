@@ -127,6 +127,14 @@
       ]
     },
     {
+      "collectionGroup": "recipes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "tags", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
       "collectionGroup": "userChallenges",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

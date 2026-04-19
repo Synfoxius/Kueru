@@ -17,6 +17,7 @@ function timeAgo(timestamp) {
 
 export default function UserCommentCard({ comment }) {
     const [postTitle, setPostTitle] = useState(null);
+    const [postDeleted, setPostDeleted] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,17 +25,22 @@ export default function UserCommentCard({ comment }) {
             getPost(comment.postId)
                 .then((p) => {
                     if (p) { setPostTitle(p.title); }
+                    else { setPostDeleted(true); }
                 })
                 .finally(() => setLoading(false));
         }
     }, [comment.postId]);
+
+    const headerHref = postDeleted
+        ? `/forum/${comment.postId}/comment/${comment.id}`
+        : `/forum/${comment.postId}`;
 
     return (
         <article className="group relative rounded-xl border border-border bg-white shadow-sm hover:border-primary/40 hover:shadow-md transition-all overflow-hidden">
 
             {/* Parent post header */}
             <Link
-                href={`/forum/${comment.postId}`}
+                href={headerHref}
                 className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/40 hover:bg-muted transition-colors"
             >
                 <IconMessageCircle className="size-3.5 text-muted-foreground shrink-0" />

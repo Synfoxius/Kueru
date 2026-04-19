@@ -1,5 +1,6 @@
 import { db } from '../firebase/config';
 import {
+    addDoc,
     arrayUnion,
     collection,
     collectionGroup,
@@ -12,6 +13,7 @@ import {
     query,
     setDoc,
     startAfter,
+    Timestamp,
     updateDoc,
     where,
     serverTimestamp,
@@ -42,6 +44,22 @@ export const ICON_NAME_MAP = {
     chef:        'IconChefHat',
     salad:       'IconSalad',
     egg:         'IconEgg',
+};
+
+// ── Admin write operations ────────────────────────────────────────────────────
+
+export const createChallenge = async (data) => {
+    const ref = await addDoc(collection(db, CHALLENGES_COLLECTION), {
+        ...data,
+        currentValue: 0,
+        participantCount: 0,
+        status: 'active',
+    });
+    return ref.id;
+};
+
+export const updateChallenge = async (challengeId, data) => {
+    await updateDoc(doc(db, CHALLENGES_COLLECTION, challengeId), data);
 };
 
 // ── Read operations ───────────────────────────────────────────────────────────

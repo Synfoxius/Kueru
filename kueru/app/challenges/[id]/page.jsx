@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-    IconArrowLeft, IconUsers, IconClock, IconCalendar,
-    IconHeart, IconWorld, IconBolt, IconFlame, IconStar,
-    IconTrophy, IconLeaf, IconEgg, IconChefHat, IconSalad,
-} from "@tabler/icons-react";
+import { IconArrowLeft, IconUsers, IconClock, IconCalendar } from "@tabler/icons-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { getChallengeById, getUserChallenge, joinChallenge } from "@/lib/db/challengeService";
@@ -19,23 +15,11 @@ import MyProgressTab from "./_components/MyProgressTab";
 import ParticipantsTab from "./_components/ParticipantsTab";
 import ViewPostsTab from "./_components/ViewPostsTab";
 
-// ── Icon map ──────────────────────────────────────────────────────────────────
-
-const ICON_MAP = {
-    heart: IconHeart, world: IconWorld, bolt: IconBolt, flame: IconFlame,
-    star: IconStar, trophy: IconTrophy, leaf: IconLeaf, egg: IconEgg,
-    chef: IconChefHat, salad: IconSalad,
-};
-
-function ChallengeIcon({ iconName, className }) {
-    const Icon = ICON_MAP[iconName] ?? IconTrophy;
-    return <Icon className={className} />;
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isActive(challenge) {
     if (!challenge) return false;
+    if (challenge.status === "expired") return false;
     const now = Date.now();
     const end = challenge.endDate?.toDate?.() ?? new Date(challenge.endDate);
     const start = challenge.startDate?.toDate?.() ?? new Date(challenge.startDate);
@@ -103,19 +87,17 @@ export default function ChallengeDetailPage() {
         if (!authLoading && !user) router.replace("/login");
     }, [authLoading, user, router]);
 
-    const load = useCallback(async () => {
-        if (!user || !challengeId) return;
-        setLoading(true);
-        const [c, uc] = await Promise.all([
-            getChallengeById(challengeId),
-            getUserChallenge(user.uid, challengeId),
-        ]);
-        setChallenge(c);
-        setUserChallenge(uc);
-        setLoading(false);
-    }, [user, challengeId]);
+    // Fetch challenge immediately — no auth needed
+    useEffect(() => {
+        if (!challengeId) return;
+        getChallengeById(challengeId).then(setChallenge).finally(() => setLoading(false));
+    }, [challengeId]);
 
-    useEffect(() => { load(); }, [load]);
+    // Fetch user's join status separately after auth resolves
+    useEffect(() => {
+        if (!user || !challengeId) return;
+        getUserChallenge(user.uid, challengeId).then(setUserChallenge);
+    }, [user, challengeId]);
 
     const handleJoin = async () => {
         setJoining(true);
@@ -140,7 +122,7 @@ export default function ChallengeDetailPage() {
         );
     }
 
-    if (!challenge) {
+    if (!challenge || !isActive(challenge)) {
         return (
             <div className="min-h-screen bg-muted/30">
                 <Navbar />

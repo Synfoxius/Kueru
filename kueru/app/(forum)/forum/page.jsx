@@ -50,10 +50,10 @@ export default function ForumPage() {
         setLastDoc(null);
         setHasMore(true);
         getRecentPosts(null, LIMIT, sort)
-            .then(({ posts, lastDoc }) => {
+            .then(({ posts, lastDoc, fetchedCount }) => {
                 setAllPosts(posts);
                 setLastDoc(lastDoc);
-                setHasMore(posts.length === LIMIT);
+                setHasMore(fetchedCount === LIMIT);
                 setCategories((prev) => [...new Set([...prev, ...posts.map((p) => p.postCategory).filter(Boolean)])]);
             })
             .catch(() => setError("Failed to load forum posts. Please try again later."))
@@ -68,10 +68,10 @@ export default function ForumPage() {
         if (!lastDoc || loadingMore) return;
         setLoadingMore(true);
         try {
-            const { posts, lastDoc: newLastDoc } = await getRecentPosts(lastDoc, LIMIT, sort);
+            const { posts, lastDoc: newLastDoc, fetchedCount } = await getRecentPosts(lastDoc, LIMIT, sort);
             setAllPosts((prev) => [...prev, ...posts]);
             setLastDoc(newLastDoc);
-            setHasMore(posts.length === LIMIT);
+            setHasMore(fetchedCount === LIMIT);
             setCategories((prev) => [...new Set([...prev, ...posts.map(p => p.postCategory).filter(Boolean)])]);
         } finally {
             setLoadingMore(false);
