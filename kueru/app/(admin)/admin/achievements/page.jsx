@@ -10,9 +10,11 @@ import { IconEye } from "@tabler/icons-react";
 import { CATEGORY_COLOR } from "../../_lib/badgeColors";
 
 const TRACKING_LABELS = {
-    streak:      "Streak",
-    count:       "Count",
-    exact_match: "Exact Match",
+    streak:        "Streak",
+    weekly_streak: "Weekly Streak",
+    count:         "Count",
+    unique_count:  "Unique Cuisine Count",
+    exact_match:   "Exact Ingredient Count",
 };
 
 const columns = [

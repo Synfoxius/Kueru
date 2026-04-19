@@ -6,7 +6,6 @@ import { getAchievementById } from "@/lib/db/achievementService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { IconArrowLeft, IconTrophy, IconFlame, IconWorld, IconMedal, IconStar } from "@tabler/icons-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -19,9 +18,11 @@ const CATEGORY_ICON = {
 };
 
 const TRACKING_LABELS = {
-    streak:      "Streak",
-    count:       "Count",
-    exact_match: "Exact Match",
+    streak:        "Streak",
+    weekly_streak: "Weekly Streak",
+    count:         "Count",
+    unique_count:  "Unique Cuisine Count",
+    exact_match:   "Exact Ingredient Count",
 };
 
 function SectionHeading({ children }) {
