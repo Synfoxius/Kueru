@@ -36,6 +36,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
     const [replies, setReplies] = useState([]);
     const [loadingReplies, setLoadingReplies] = useState(false);
     const [repliesVisible, setRepliesVisible] = useState(false);
+    const [repliesChecked, setRepliesChecked] = useState(false);
     const [deleted, setDeleted] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -74,6 +75,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
         try {
             const fetched = await getRepliesByComment(comment.id);
             setReplies(fetched);
+            setRepliesChecked(true);
             setRepliesVisible(true);
         } finally {
             setLoadingReplies(false);
@@ -171,7 +173,7 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                             </button>
                         )}
 
-                        {(replies.length > 0 || !repliesVisible) && (
+                        {(!repliesChecked || replies.length > 0) && (
                             <button
                                 onClick={toggleReplies}
                                 className="text-xs text-muted-foreground hover:text-primary transition-colors"
@@ -182,6 +184,9 @@ export default function CommentCard({ comment, currentUserId, postId, depth = 0,
                                     ? "Hide replies"
                                     : "Show replies"}
                             </button>
+                        )}
+                        {repliesChecked && replies.length === 0 && repliesVisible && (
+                            <span className="text-xs text-muted-foreground italic">No replies yet</span>
                         )}
 
                     </div>
