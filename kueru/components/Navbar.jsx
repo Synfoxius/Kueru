@@ -12,8 +12,6 @@ import {
     NavigationMenu,
     NavigationMenuList,
     NavigationMenuItem,
-    NavigationMenuTrigger,
-    NavigationMenuContent,
     NavigationMenuLink,
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
@@ -24,8 +22,17 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+    Sheet,
+    SheetTrigger,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetClose,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup, IconBell, IconTrophy } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+import { IconUser, IconLogout, IconSearch, IconPlus, IconLogin, IconSettings, IconUsersGroup, IconBell, IconTrophy, IconMenu2, IconChevronDown } from "@tabler/icons-react";
 
 /**
  * Extracts up to two initials from a username string.
@@ -43,7 +50,7 @@ function getInitials(username) {
 /** Recipe dropdown sub-links */
 const recipeLinks = [
     { label: "Discover", href: "/recipes/discover" },
-    { label: "For You", href: "/recipes/recommendations" },
+    { label: "For You", href: "/recipes/foryou" },
     { label: "Search", href: "/recipes/find", icon: IconSearch },
     { label: "New Recipe", href: "/recipes/new", icon: IconPlus },
 ];
@@ -75,9 +82,55 @@ export default function Navbar() {
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
                 {/* Left section: Logo + Navigation */}
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 md:gap-6">
+                    {/* Mobile nav drawer */}
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="md:hidden"
+                                aria-label="Open navigation menu"
+                            >
+                                <IconMenu2 className="size-5" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-[85vw] max-w-sm p-0">
+                            <SheetHeader className="border-b border-border">
+                                <SheetTitle>Navigation</SheetTitle>
+                            </SheetHeader>
+                            <div className="flex flex-col p-3">
+                                <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recipes</p>
+                                {recipeLinks.map((link) => (
+                                    <SheetClose asChild key={link.href}>
+                                        <Link
+                                            href={link.href}
+                                            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium hover:bg-muted"
+                                        >
+                                            {link.icon ? <link.icon className="size-4" /> : null}
+                                            {link.label}
+                                        </Link>
+                                    </SheetClose>
+                                ))}
+
+                                <div className="my-2 h-px bg-border" />
+
+                                <SheetClose asChild>
+                                    <Link href="/challenges" className="rounded-md px-2 py-2 text-sm font-medium hover:bg-muted">
+                                        Challenges
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link href="/forum" className="rounded-md px-2 py-2 text-sm font-medium hover:bg-muted">
+                                        Forum
+                                    </Link>
+                                </SheetClose>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
                     {/* Logo */}
                     <Link href="/" className="flex shrink-0 items-center">
                         <Image
@@ -91,35 +144,34 @@ export default function Navbar() {
                     </Link>
 
                     {/* Navigation tabs */}
-                    <NavigationMenu>
+                    <NavigationMenu className="hidden md:block">
                         <NavigationMenuList className="gap-1">
                             {/* Recipe tab with dropdown */}
                             <NavigationMenuItem>
-                                <NavigationMenuTrigger className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${isRecipeActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90 data-popup-open:bg-primary/80 data-popup-open:hover:bg-primary/90 data-open:bg-primary/80 data-open:hover:bg-primary/90 data-open:focus:bg-primary/90" : "hover:bg-muted focus:bg-muted"}`}>
-                                    <Link
-                                        href="/recipes/discover"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        Recipe
-                                    </Link>
-                                </NavigationMenuTrigger>
-                                <NavigationMenuContent className="min-w-[180px]">
-                                    <ul className="flex flex-col gap-0.5 p-1">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className={`${navigationMenuTriggerStyle()} ${isRecipeActive ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90" : ""} data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:hover:bg-primary/90 data-[state=open]:focus:bg-primary/90`}
+                                        >
+                                            <span>Recipes</span>
+                                            <IconChevronDown className="size-3.5 md:size-4 opacity-70 transition-transform duration-200 data-[state=open]:rotate-180" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="min-w-[180px]">
                                         {recipeLinks.map((link) => (
-                                            <li key={link.href}>
-                                                <NavigationMenuLink asChild>
-                                                    <Link
-                                                        href={link.href}
-                                                        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-                                                    >
-                                                        {link.icon && <link.icon className="size-4" />}
-                                                        {link.label}
-                                                    </Link>
-                                                </NavigationMenuLink>
-                                            </li>
+                                            <DropdownMenuItem asChild key={link.href}>
+                                                <Link
+                                                    href={link.href}
+                                                    className="flex items-center gap-2 px-4 py-2 text-base font-medium"
+                                                >
+                                                    {link.icon ? <link.icon className="size-4" /> : null}
+                                                    {link.label}
+                                                </Link>
+                                            </DropdownMenuItem>
                                         ))}
-                                    </ul>
-                                </NavigationMenuContent>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </NavigationMenuItem>
 
                             {/* Challenges */}
@@ -144,7 +196,7 @@ export default function Navbar() {
                 </div>
 
                 {/* Right section: Bell + Profile avatar */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-3">
                 {user && (
                     <Link
                         href="/users/notifications"
