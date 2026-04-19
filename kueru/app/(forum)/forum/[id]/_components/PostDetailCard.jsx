@@ -362,7 +362,7 @@ export default function PostDetailCard({ post, onDeleted, defaultEditing = false
             <ConfirmDialog
                 open={showDeleteDialog}
                 title="Delete post?"
-                description="This action cannot be undone. The post and all its comments will be permanently deleted."
+                description="This action cannot be undone. Your post will be removed from the forum."
                 confirmLabel="Delete"
                 destructive
                 onConfirm={handleDelete}

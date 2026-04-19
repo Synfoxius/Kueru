@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, serverTimestamp, documentId } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, orderBy, limit, startAfter, serverTimestamp, documentId } from 'firebase/firestore';
 
 const FORUM_COLLECTION = 'forum_posts';
 
@@ -7,7 +7,9 @@ export const getPost = async (postId) => {
     const postRef = doc(db, FORUM_COLLECTION, postId);
     const snap = await getDoc(postRef);
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() };
+    const data = snap.data();
+    if (data.deleted) return null;
+    return { id: snap.id, ...data };
 };
 
 export const getPostsByCategory = async (category, lastDoc = null, limitCount = 10) => {
@@ -25,9 +27,11 @@ export const getPostsByCategory = async (category, lastDoc = null, limitCount = 
     
     const q = query(postsRef, ...queryConstraints);
     const snap = await getDocs(q);
-    
-    const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
+
+    const posts = snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((p) => !p.deleted);
+    return { posts, lastDoc: snap.docs[snap.docs.length - 1], fetchedCount: snap.docs.length };
 };
 
 const SORT_FIELDS = {
@@ -52,8 +56,10 @@ export const getRecentPosts = async (lastDoc = null, limitCount = 15, sortBy = "
     const q = query(postsRef, ...queryConstraints);
     const snap = await getDocs(q);
 
-    const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
+    const posts = snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((p) => !p.deleted);
+    return { posts, lastDoc: snap.docs[snap.docs.length - 1], fetchedCount: snap.docs.length };
 };
 
 export const getPostsByUser = async (userId, lastDoc = null, limitCount = 10) => {
@@ -72,12 +78,16 @@ export const getPostsByUser = async (userId, lastDoc = null, limitCount = 10) =>
     const q = query(postsRef, ...queryConstraints);
     const snap = await getDocs(q);
 
-    const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return { posts, lastDoc: snap.docs[snap.docs.length - 1] };
+    const posts = snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((p) => !p.deleted);
+    return { posts, lastDoc: snap.docs[snap.docs.length - 1], fetchedCount: snap.docs.length };
 };
 
 export const deletePost = async (postId) => {
-    await deleteDoc(doc(db, FORUM_COLLECTION, postId));
+    await updateDoc(doc(db, FORUM_COLLECTION, postId), {
+        deleted: true,
+    });
 };
 
 export const updatePost = async (postId, content) => {
@@ -98,7 +108,9 @@ export const getPostsByIds = async (postIds) => {
             getDocs(query(collection(db, FORUM_COLLECTION), where(documentId(), "in", chunk)))
         )
     );
-    return results.flatMap((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    return results
+        .flatMap((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+        .filter((p) => !p.deleted);
 };
 
 export const createPost = async (postData) => {

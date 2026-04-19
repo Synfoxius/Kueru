@@ -63,23 +63,29 @@ export const castVote = async (userId, targetId, targetType, voteValue) => {
         if (voteValue === 1 && !existingSnap.exists()) {
             const targetData = targetSnap.data();
             const targetAuthorId = targetData?.userId;
-            if (targetAuthorId) {
+            const targetDeleted = targetData?.deleted === true;
+            if (targetAuthorId && !targetDeleted) {
                 if (targetType === 'post') {
                     await createNotification(targetAuthorId, userId, 'post_upvote', targetId, {
                         postTitle: targetData?.title ?? null,
                     });
                 } else {
-                    // comment — fetch parent post for its title
+                    // comment — fetch parent post for its title (skip if post deleted)
                     const postId = targetData?.postId ?? null;
                     let postTitle = null;
+                    let postDeleted = false;
                     if (postId) {
                         const postSnap = await getDoc(doc(db, 'forum_posts', postId));
-                        postTitle = postSnap.data()?.title ?? null;
+                        const postData = postSnap.data();
+                        postTitle = postData?.title ?? null;
+                        postDeleted = postData?.deleted === true;
                     }
-                    await createNotification(targetAuthorId, userId, 'comment_upvote', targetId, {
-                        postId,
-                        postTitle,
-                    });
+                    if (!postDeleted) {
+                        await createNotification(targetAuthorId, userId, 'comment_upvote', targetId, {
+                            postId,
+                            postTitle,
+                        });
+                    }
                 }
             }
         }
