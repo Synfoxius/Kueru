@@ -7,9 +7,7 @@ export const getPost = async (postId) => {
     const postRef = doc(db, FORUM_COLLECTION, postId);
     const snap = await getDoc(postRef);
     if (!snap.exists()) return null;
-    const data = snap.data();
-    if (data.deleted) return null;
-    return { id: snap.id, ...data };
+    return { id: snap.id, ...snap.data() };
 };
 
 export const getPostsByCategory = async (category, lastDoc = null, limitCount = 10) => {

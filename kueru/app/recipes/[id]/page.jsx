@@ -236,9 +236,12 @@ export default function RecipeDetailPage() {
                         <CardContent className="space-y-4 p-8 flex flex-col items-center justify-center text-center">
                             <h2 className="text-2xl font-bold">This recipe has been deleted</h2>
                             <p className="text-muted-foreground">The creator has removed this recipe, so it is no longer available.</p>
-                            <Button asChild>
-                                <Link href="/recipes/discover">Discover Page</Link>
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => router.back()}>Go Back</Button>
+                                <Button asChild>
+                                    <Link href="/recipes/discover">Discover Page</Link>
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 ) : (
