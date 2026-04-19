@@ -44,17 +44,12 @@ export default function RecipeOfTheDay() {
             <CardContent className="p-0">
                 <div className="relative h-44 w-full bg-muted">
 
-                    {(() => {
-                        const imageUrl = getPreviewImageUrl(recipe.images, null);
-                        return imageUrl ? (
-                            <Image
-                                src={imageUrl}
-                                alt={recipe.name}
-                                fill
-                                className="object-cover brightness-60"
-                            />
-                        ) : null;
-                    })()}
+                    <Image
+                        src={getPreviewImageUrl(recipe.images, null) || "/home1.jpg"}
+                        alt={recipe.name}
+                        fill
+                        className="object-cover brightness-60"
+                    />
 
                     <div className="absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
                         <span className="w-fit rounded-full bg-yellow-400 px-3 py-0.5 text-xs font-semibold text-black">
