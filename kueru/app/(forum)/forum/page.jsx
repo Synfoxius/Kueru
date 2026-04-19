@@ -16,7 +16,6 @@ import RecipeOfTheDay from "./_components/RecipeOfTheDay";
 import PostCard from "./_components/PostCard";
 import TrendingPanel from "./_components/TrendingPanel";
 import CategoriesPanel from "./_components/CategoriesPanel";
-\
 
 const SORT_OPTIONS = ["Most Popular", "Newest", "Most Comments"];
 
