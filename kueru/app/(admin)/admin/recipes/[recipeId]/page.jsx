@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { IconArrowLeft, IconChevronDown, IconExternalLink, IconPlus, IconX } from "@tabler/icons-react";
+import { normalizeMediaItems } from "@/lib/media";
 import { STATUS_COLOR } from "../../../_lib/badgeColors";
 
 const ALL_STATUSES = ["available", "pending", "deleted", "archived"];
@@ -357,34 +358,47 @@ export default function RecipeDetailPage() {
                 )}
 
                 {/* Images */}
-                {r.images?.length > 0 && (
-                    <Card>
-                        <CardContent className="p-5 space-y-3">
-                            <SectionHeading>Images ({r.images.length})</SectionHeading>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                {r.images.map((url, i) => (
-                                    <a
-                                        key={i}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="group relative block overflow-hidden rounded-md border border-border bg-muted aspect-square"
-                                    >
-                                        <img
-                                            src={url}
-                                            alt={`Image ${i + 1}`}
-                                            className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
-                                        />
-                                        <span className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-black/50 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                                            Image {i + 1}
-                                            <IconExternalLink className="size-3" />
-                                        </span>
-                                    </a>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                {(() => {
+                    const mediaItems = normalizeMediaItems(r.images);
+                    if (!mediaItems.length) return null;
+                    return (
+                        <Card>
+                            <CardContent className="p-5 space-y-3">
+                                <SectionHeading>Media ({mediaItems.length})</SectionHeading>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {mediaItems.map((item, i) => (
+                                        <a
+                                            key={i}
+                                            href={item.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="group relative block overflow-hidden rounded-md border border-border bg-muted aspect-square"
+                                        >
+                                            {item.type === 'video' ? (
+                                                <video
+                                                    src={item.url}
+                                                    className="h-full w-full object-cover"
+                                                    muted
+                                                    playsInline
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={item.url}
+                                                    alt={`Image ${i + 1}`}
+                                                    className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
+                                                />
+                                            )}
+                                            <span className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-black/50 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                                {item.type === 'video' ? 'Video' : 'Image'} {i + 1}
+                                                <IconExternalLink className="size-3" />
+                                            </span>
+                                        </a>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
 
             </div>
 
