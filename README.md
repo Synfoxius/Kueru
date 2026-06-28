@@ -7,6 +7,8 @@ Kueru is a full-stack web application built with Next.js and Firebase. It combin
 **Live site:** [kueru.org](https://kueru.org/)
 
 > Built as part of NUS IS3108. Stack: **Next.js 16 (App Router) · React 19 · Firebase · Vertex AI (Gemini) · shadcn/ui · Tailwind CSS v4**
+>
+> The application source lives in the [`kueru/`](kueru/) directory.
 
 ---
 
@@ -61,11 +63,11 @@ Kueru is a full-stack web application built with Next.js and Firebase. It combin
 
 Kueru uses a **hybrid client/server data model**:
 
-- **Client-side service layer** (`lib/db/*`) — 20+ focused modules (`recipeService`, `forumService`, `commentService`, `voteService`, `notificationService`, …) talk directly to Firestore from the browser for normal user operations.
-- **Server-side admin API** (`app/api/admin/*`) — sensitive/privileged operations (moderation, user management, stats aggregation) run as Next.js Route Handlers using the **Firebase Admin SDK**. Every request passes through [`verifyAdminRequest`](lib/api/adminAuthMiddleware.js), which validates the caller's Firebase ID token and confirms `role === 'admin'`.
-- **Real-time auth context** ([`AuthContext`](context/AuthContext.jsx)) — subscribes to the signed-in user's Firestore document with `onSnapshot`, so role/onboarding/disabled-status changes propagate instantly (e.g. an admin disabling an account immediately forces sign-out).
+- **Client-side service layer** (`kueru/lib/db/*`) — 20+ focused modules (`recipeService`, `forumService`, `commentService`, `voteService`, `notificationService`, …) talk directly to Firestore from the browser for normal user operations.
+- **Server-side admin API** (`kueru/app/api/admin/*`) — sensitive/privileged operations (moderation, user management, stats aggregation) run as Next.js Route Handlers using the **Firebase Admin SDK**. Every request passes through [`verifyAdminRequest`](kueru/lib/api/adminAuthMiddleware.js), which validates the caller's Firebase ID token and confirms `role === 'admin'`.
+- **Real-time auth context** ([`AuthContext`](kueru/context/AuthContext.jsx)) — subscribes to the signed-in user's Firestore document with `onSnapshot`, so role/onboarding/disabled-status changes propagate instantly (e.g. an admin disabling an account immediately forces sign-out).
 - **Route groups** isolate concerns and layouts: `(auth)`, `(onboarding)`, `(forum)`, `(admin)`, and `(admin-public)`.
-- **Gamification handlers** ([`lib/achievements`](lib/achievements/)) implement a strategy/handler pattern so new achievement types can be added without touching the core tracking loop.
+- **Gamification handlers** ([`lib/achievements`](kueru/lib/achievements/)) implement a strategy/handler pattern so new achievement types can be added without touching the core tracking loop.
 
 ```
 Browser (React/Next.js)
@@ -148,9 +150,11 @@ https://kueru.org/
 
 ## Local Development
 
-The project is wired for the **Firebase Emulator Suite**, so you can develop without touching production data. [`config.js`](lib/firebase/config.js) automatically connects to local emulators when `NODE_ENV === "development"`.
+The project is wired for the **Firebase Emulator Suite**, so you can develop without touching production data. [`config.js`](kueru/lib/firebase/config.js) automatically connects to local emulators when `NODE_ENV === "development"`.
 
 ```bash
+# from the kueru/ directory
+
 # 1. Install dependencies
 npm install
 
@@ -161,7 +165,7 @@ firebase emulators:start
 npm run dev
 ```
 
-Default emulator ports (see [`firebase.json`](firebase.json)): Firestore `8080`, Auth `9099`, Storage `9199`, App Hosting `5002`.
+Default emulator ports (see [`firebase.json`](kueru/firebase.json)): Firestore `8080`, Auth `9099`, Storage `9199`, App Hosting `5002`.
 
 ### Available Scripts
 
@@ -197,7 +201,7 @@ Kueru's Firestore is organized around the following top-level collections:
 
 A few decisions worth calling out for anyone reading the code:
 
-- **AI with guaranteed structure** — instead of free-form prompting, the recipe converter ([`vertexRecipeConverter.js`](lib/ai/vertexRecipeConverter.js)) supplies Gemini a `responseSchema`, constraining the model to a strict ingredient/step shape and a whitelist of measurement units, so the output drops straight into Firestore without fragile parsing.
+- **AI with guaranteed structure** — instead of free-form prompting, the recipe converter ([`vertexRecipeConverter.js`](kueru/lib/ai/vertexRecipeConverter.js)) supplies Gemini a `responseSchema`, constraining the model to a strict ingredient/step shape and a whitelist of measurement units, so the output drops straight into Firestore without fragile parsing.
 - **Defensive Firestore writes** — counters and cross-document updates (vote tallies, comment counts, report flags) check that the target document still exists before issuing `increment`/`update`, preventing crashes when content is deleted mid-action.
 - **Soft vs. hard deletion** — comments are soft-deleted (content nulled, `deleted: true`) so reply threads remain readable, while posts hard-delete; UI components gracefully render `[deleted]` placeholders for missing posts, recipes, and comments.
 - **Efficient batch reads** — saved/hidden posts and report enrichment fetch documents in batched `documentId() in` / `getAll(...)` queries (chunked to Firestore limits) instead of N round-trips.
@@ -208,7 +212,7 @@ A few decisions worth calling out for anyone reading the code:
 
 ## Security
 
-- **Server-guarded admin actions** — privileged operations are exposed only through server-side Route Handlers, each passing through [`verifyAdminRequest`](lib/api/adminAuthMiddleware.js), which verifies the caller's Firebase ID token with the Admin SDK and confirms an `admin` role before acting.
+- **Server-guarded admin actions** — privileged operations are exposed only through server-side Route Handlers, each passing through [`verifyAdminRequest`](kueru/lib/api/adminAuthMiddleware.js), which verifies the caller's Firebase ID token with the Admin SDK and confirms an `admin` role before acting.
 - **Real-time session enforcement** — Firebase Auth manages sessions, and the signed-in user's profile is streamed via `onSnapshot`, so account-status changes (e.g. an admin disabling an account) take effect immediately.
 - **Environment-scoped secrets** — public `NEXT_PUBLIC_*` client config is kept separate from server-only Admin SDK credentials (`FIREBASE_PRIVATE_KEY`, `FIREBASE_CLIENT_EMAIL`).
 
